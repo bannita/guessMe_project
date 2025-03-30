@@ -1,0 +1,1 @@
+#Handles all routes: /login, /signup, /play, /stats, etc.

@@ -1,0 +1,1 @@
+//Fetches and shows user stats from /stats route.

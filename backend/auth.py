@@ -1,0 +1,1 @@
+#Functions for login, signup, and authentication checks.
