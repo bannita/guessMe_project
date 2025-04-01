@@ -1,6 +1,8 @@
 #Defines database tables: User, Word, GameStat, DailyLife, etc.
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
+from datetime import datetime, date
+from sqlalchemy import ForeignKey
+from sqlalchemy.orm import relationship
 
 db = SQLAlchemy()
 
@@ -21,3 +23,14 @@ class Word(db.Model):
     word = db.Column(db.String(5), unique=True, nullable=False)
     is_solution = db.Column(db.Boolean, nullable=False, default=False)
     used = db.Column(db.Boolean, nullable=False, default=False)
+
+class GameStat(db.Model):
+    __tablename__ = 'game_stats'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, ForeignKey('users.id'), nullable=False)
+    date = db.Column(db.Date, default=date.today)
+    won = db.Column(db.Boolean, default=False)
+    attempts = db.Column(db.Integer, default=0)
+
+    user = relationship("User", backref="game_stats")
