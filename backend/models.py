@@ -34,3 +34,14 @@ class GameStat(db.Model):
     attempts = db.Column(db.Integer, default=0)
 
     user = relationship("User", backref="game_stats")
+
+class DailyLife(db.Model):
+    __tablename__ = 'daily_life'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, ForeignKey('users.id'), nullable=False)
+    date = db.Column(db.Date, default=date.today)
+    lives_left = db.Column(db.Integer, default=5)
+    hints_used = db.Column(db.Integer, default=0)
+
+    user = relationship("User", backref="daily_life")

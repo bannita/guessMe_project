@@ -1,8 +1,8 @@
 from flask import Blueprint, jsonify, request
-from models import db, Word, User, GameStat
+from models import db, Word, User, GameStat, DailyLife
 import random
 from werkzeug.security import generate_password_hash, check_password_hash
-
+from datetime import date
 
 routes = Blueprint("routes", __name__)
 
@@ -47,16 +47,53 @@ def stats(email):
     
     #count games won
     wins = 0
-    for g in games:
-        if g.won:
+    for game in games:
+        if game.won:
             wins += 1
 
+    #calculate win streak
+    current_streak = 0
+    max_streak = 0
+    temp_streak = 0
+
+    #calculate max streak
+    for game in games:
+        if game.won:
+            temp_streak += 1
+            if temp_streak > max_streak:
+                max_streak = temp_streak
+        else:
+            temp_streak = 0
+
+    #check if the streak is still going
+    current_streak = 0
+    if len(games) > 0:
+        last_game = games[len(games) - 1]
+        if last_game.won:
+            current_streak = temp_streak
+
+    #get lives for today
+    today = date.today()
+    lives_left = 0
+    lives = DailyLife.query.filter_by(user_id=user.id, date=today).first()
+    #if row for lives exists today we assign number of lives left
+    if lives:
+        lives_left = lives.lives_left
+
+    #get hints used for today
+    if lives:
+        hints_used = lives.hints_used
+    else:
+        hints_used = 0
+
+            
     return jsonify({
         "games_played": games_played,
         "wins": wins,
-        "win_streak": 0,  #will add streak logic later
-        "lives_left": 5,  #placeholder for lives system
-        "hints_used": 0   #placeholder for hint system
+        "current_streak": current_streak,
+        "max_streak": max_streak,
+        "lives_left": lives_left,
+        "hints_used": hints_used
     })
 
 #signup route
@@ -87,7 +124,7 @@ def signup():
 
     return jsonify({"message": "Signup successful!"}), 201
 
-
+#login route
 @routes.route("/api/login", methods=["POST"])
 def login():
     data = request.get_json()
@@ -110,7 +147,7 @@ def login():
 
     return jsonify({"message": "Login successful!"}), 200
 
-
+#end_game route
 @routes.route("/api/end-game", methods=["POST"])
 def end_game():
     data = request.get_json()
@@ -135,3 +172,95 @@ def end_game():
     db.session.commit()
 
     return jsonify({"message": "Game result recorded"}), 201
+
+#route for giving lives
+@routes.route("/api/lives/<email>")
+def get_lives(email):
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    today = date.today()
+
+    #check if lives already recorded for today
+    lives = DailyLife.query.filter_by(user_id=user.id, date=today).first()
+
+    if not lives:
+        #create new entry for today
+        lives = DailyLife(user_id=user.id, lives_left=5, date=today)
+        db.session.add(lives)
+        db.session.commit()
+
+    return jsonify({
+        "date": today.strftime("%Y-%m-%d"),
+        "lives_left": lives.lives_left
+    })
+
+#route for substracting live
+@routes.route("/api/use-life", methods=["POST"])
+def use_life():
+    data = request.get_json()
+    email = data.get("email")
+
+    if not email:
+        return jsonify({"error": "Email is required"}), 400
+
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    today = date.today()
+    lives = DailyLife.query.filter_by(user_id=user.id, date=today).first()
+
+    #if no record exists for today create one with 5 lives
+    if not lives:
+        lives = DailyLife(user_id=user.id, lives_left=5, date = today)
+        db.session.add(lives)
+        db.session.commit()
+
+    if lives.lives_left <= 0:
+        return jsonify({"error": "No lives left for today"}), 403
+
+    #subtract one life
+    lives.lives_left -= 1
+    db.session.commit()
+
+    return jsonify({
+        "message": "Life used",
+        "lives_left": lives.lives_left
+    })
+
+#route for using hint
+@routes.route("/api/use-hint", methods=["POST"])
+def use_hint():
+    data = request.get_json()
+    email = data.get("email")
+
+    if not email:
+        return jsonify({"error": "Email is required"}), 400
+
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    today = date.today()
+    lives = DailyLife.query.filter_by(user_id=user.id, date=today).first()
+
+    #if no row for today, create one with 5 lives
+    if not lives:
+        lives = DailyLife(user_id=user.id, date=today, lives_left=5)
+        db.session.add(lives)
+        db.session.commit()
+
+    if lives.lives_left <= 0:
+        return jsonify({"error": "No lives left for hint"}), 403
+
+    # Subtract a life
+    lives.lives_left -= 1
+    lives.hints_used += 1
+    db.session.commit()
+
+    return jsonify({
+        "message": "Hint used, 1 life subtracted",
+        "lives_left": lives.lives_left
+    })

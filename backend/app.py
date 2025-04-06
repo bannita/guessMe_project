@@ -2,7 +2,7 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 import os
 from routes import routes
-from models import db, User, Word, GameStat
+from models import db, User, Word, GameStat, DailyLife
 
 app = Flask(__name__)
 app.register_blueprint(routes)
