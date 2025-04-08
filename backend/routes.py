@@ -85,6 +85,15 @@ def stats(email):
         hints_used = lives.hints_used
     else:
         hints_used = 0
+    
+    #get today's chosen word
+    used_words = Word.query.filter_by(is_solution=True, used=True).all()
+
+    if len(used_words) > 0:
+        last_used_word = used_words[len(used_words) - 1]
+        today_word = last_used_word.word
+    else:
+        today_word = None
 
             
     return jsonify({
@@ -93,7 +102,8 @@ def stats(email):
         "current_streak": current_streak,
         "max_streak": max_streak,
         "lives_left": lives_left,
-        "hints_used": hints_used
+        "hints_used": hints_used,
+        "today_word": today_word
     })
 
 #signup route
@@ -262,5 +272,51 @@ def use_hint():
 
     return jsonify({
         "message": "Hint used, 1 life subtracted",
+        "lives_left": lives.lives_left
+        "hints_used": lives.hints_used,
+    })
+
+#start the game
+@routes.route("/api/start-game", methods=["POST"])
+def start_game():
+    data = request.get_json()
+    email = data.get("email")
+
+    if not email:
+        return jsonify({"error": "Email is required"}), 400
+
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    today = date.today()
+    lives = DailyLife.query.filter_by(user_id=user.id, date=today).first()
+
+    #if no lives row exists, give 5 lives
+    if not lives:
+        lives = DailyLife(user_id=user.id, date=today, lives_left=5)
+        db.session.add(lives)
+        db.session.commit()
+
+    if lives.lives_left <= 0:
+        return jsonify({"error": "No lives left to start a game"}), 403
+
+    #subtract 1 life for starting the game
+    lives.lives_left -= 1
+    db.session.commit()
+
+    #get a random unused solution word
+    words = Word.query.filter_by(is_solution=True, used=False).all()
+    if not words:
+        return jsonify({"error": "No unused solution words available"}), 404
+
+    chosen_word = random.choice(words)
+    #mark word as used
+    chosen_word.used = True
+    db.session.commit()
+
+    return jsonify({
+        "message": "Game started",
+        "word": chosen_word.word,
         "lives_left": lives.lives_left
     })
