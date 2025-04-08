@@ -45,3 +45,15 @@ class DailyLife(db.Model):
     hints_used = db.Column(db.Integer, default=0)
 
     user = relationship("User", backref="daily_life")
+
+class GameSession(db.Model):
+    __tablename__ = 'game_sessions'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    word_id = db.Column(db.Integer, db.ForeignKey('words.id'), nullable=False)
+    date = db.Column(db.Date, default=date.today)
+    active = db.Column(db.Boolean, default=True)  #helps track if session is still ongoing
+
+    user = db.relationship("User", backref="game_sessions")
+    word = db.relationship("Word")
