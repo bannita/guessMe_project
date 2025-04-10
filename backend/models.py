@@ -57,3 +57,16 @@ class GameSession(db.Model):
 
     user = db.relationship("User", backref="game_sessions")
     word = db.relationship("Word")
+
+class Guess(db.Model):
+    __tablename__ = 'guesses'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    game_session_id = db.Column(db.Integer, db.ForeignKey('game_sessions.id'), nullable=False)
+    date = db.Column(db.Date, default=date.today)
+    guess = db.Column(db.String(5), nullable=False)
+    correct = db.Column(db.Boolean, default=False)
+
+    user = db.relationship("User", backref="guesses")
+    session = db.relationship("GameSession", backref="guesses")

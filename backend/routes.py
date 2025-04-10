@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from models import db, Word, User, GameStat, DailyLife
+from models import db, Word, User, GameStat, DailyLife, Guess
 import random
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import date
@@ -95,7 +95,26 @@ def stats(email):
     else:
         today_word = None
 
-            
+    session = GameSession.query.filter_by(user_id=user.id, date=today).first()
+    # build today's hint from guesses (if session exists)
+    hint = None
+    if session:
+        solution = session.word.word.lower()
+        guesses = Guess.query.filter_by(game_session_id=session.id).all()
+
+        if guesses:
+            revealed = []
+            for i in range(len(solution)):
+                revealed.append("_")
+
+            for guess in guesses:
+                guess_word = guess.guess.lower()
+                for i in range(len(solution)):
+                    if i < len(guess_word) and guess_word[i] == solution[i]:
+                        revealed[i] = solution[i]
+
+    hint = " ".join(revealed)
+
     return jsonify({
         "games_played": games_played,
         "wins": wins,
@@ -103,7 +122,8 @@ def stats(email):
         "max_streak": max_streak,
         "lives_left": lives_left,
         "hints_used": hints_used,
-        "today_word": today_word
+        "today_word": today_word,
+        "hint": hint
     })
 
 #signup route
@@ -256,7 +276,7 @@ def start_game():
     today = date.today()
     lives = DailyLife.query.filter_by(user_id=user.id, date=today).first()
 
-    # If no lives row, give 5 lives
+    #if no lives row, give 5 lives
     if not lives:
         lives = DailyLife(user_id=user.id, date=today, lives_left=5)
         db.session.add(lives)
@@ -265,23 +285,36 @@ def start_game():
     if lives.lives_left <= 0:
         return jsonify({"error": "No lives left to start a game"}), 403
 
-    # Subtract 1 life
+    #subtract 1 life
     lives.lives_left -= 1
     db.session.commit()
 
-    # Pick a random unused solution word
-    words = Word.query.filter_by(is_solution=True, used=False).all()
-    if not words:
-        return jsonify({"error": "No unused solution words available"}), 404
+    #get word IDs this user has already played
+    #1) get all the word IDs the user has already played in previous games
+    played_sessions = db.session.query(GameSession.word_id).filter_by(user_id=user.id).all()
 
-    chosen_word = random.choice(words)
-    chosen_word.used = True  # Optional: you can still mark it as used
-    db.session.commit()
+    #2) convert list of tuples into list of integers
+    used_word_ids = []
+    for session in played_sessions:
+        used_word_ids.append(session[0])
 
-    #create a GameSession for today
+
+    #find words this user hasn't seen yet
+    available_words = Word.query.filter(
+        Word.is_solution == True,
+        ~Word.id.in_(used_word_ids)
+    ).all()
+
+    if not available_words:
+        return jsonify({"error": "No more words available for you!"}), 404
+
+    #pick one random word
+    chosen_word = random.choice(available_words)
+
+    # Create a GameSession for today
     existing_session = GameSession.query.filter_by(user_id=user.id, date=today, active=True).first()
     if existing_session:
-        existing_session.word_id = chosen_word.id  #replace the word if needed
+        existing_session.word_id = chosen_word.id
     else:
         new_session = GameSession(user_id=user.id, word_id=chosen_word.id, date=today)
         db.session.add(new_session)
@@ -330,6 +363,15 @@ def guess():
         correct = True
     else:
         correct = False
+
+    #save new guess in table
+    new_guess = Guess(
+    user_id=user.id,
+    game_session_id=session.id,
+    date=today,
+    guess=guess_clean,
+    correct=correct
+    )
 
     # Wordle-style feedback logic
     feedback = []
@@ -380,5 +422,82 @@ def guess():
         "solution_word": word.word if correct else None,
         "attempts": game_stat.attempts,
         "feedback": feedback
+    })
+
+@routes.route("/api/use-hint", methods=["POST"])
+def use_hint():
+    data = request.get_json()
+    email = data.get("email")
+
+    if not email:
+        return jsonify({"error": "Email is required"}), 400
+
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    today = date.today()
+
+    lives = DailyLife.query.filter_by(user_id=user.id, date=today).first()
+    if not lives:
+        lives = DailyLife(user_id=user.id, date=today, lives_left=5, hints_used=0)
+        db.session.add(lives)
+        db.session.commit()
+
+    if lives.lives_left <= 0:
+        return jsonify({"error": "No lives left to use a hint"}), 403
+
+    #get current game session
+    session = GameSession.query.filter_by(user_id=user.id, date=today, active=True).first()
+    if not session:
+        return jsonify({"error": "No active game session found"}), 404
+
+    word = session.word
+    if not word:
+        return jsonify({"error": "Game word not found"}), 404
+
+    solution = word.word.lower()
+
+    #get guesses for this game session only
+    guesses = Guess.query.filter_by(game_session_id=session.id).all()
+    if not guesses:
+        return jsonify({"error": "You must make at least one guess before using a hint"}), 403
+
+    #build revealed state based on green matches
+    revealed = []
+    for i in range(len(solution)):
+        revealed.append("_")
+
+    for guess in guesses:
+        guess_word = guess.guess.lower()
+        for i in range(len(solution)):
+            if i < len(guess_word) and guess_word[i] == solution[i]:
+                revealed[i] = solution[i]  # mark green
+
+    #reveal one unrevealed letter
+    import random
+    unrevealed_indices = []
+    for i in range(len(solution)):
+        if revealed[i] == "_":
+            unrevealed_indices.append(i)
+
+    if not unrevealed_indices:
+        return jsonify({"message": "All letters already revealed!"}), 400
+
+    hint_index = random.choice(unrevealed_indices)
+    revealed[hint_index] = solution[hint_index]
+
+    hint_string = " ".join(revealed)
+
+    # Subtract life + track hint use
+    lives.lives_left -= 1
+    lives.hints_used += 1
+    db.session.commit()
+
+    return jsonify({
+        "message": "Hint used (1 life spent)",
+        "hint": hint_string,
+        "lives_left": lives.lives_left,
+        "hints_used": lives.hints_used
     })
 
