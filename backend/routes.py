@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, session
 from models import db, Word, User, GameStat, DailyLife, Guess
 import random
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -126,6 +126,16 @@ def stats(email):
         "hint": hint
     })
 
+#check validity of email
+def is_valid_email(email):
+    is_valid = False
+    
+    if "@" in email and "." in email:
+        if email.index("@") < email.index(".") and email.index("@") > 0 and email.index(".") < (len(email)-1):
+            is_valid = True
+
+    return is_valid
+
 #signup route
 @routes.route("/api/signup", methods = ['POST'])
 def signup():
@@ -137,6 +147,9 @@ def signup():
 
     if not username or not email or not password:
         return jsonify({"error": "All fields are required"}), 400
+    
+    if not is_valid_email(email):
+        return jsonify({"error": "Invalid email format"}), 400
 
     #check if user already exists
     existing_user = User.query.filter(
@@ -174,8 +187,34 @@ def login():
     #check password
     if not check_password_hash(user.password, password):
         return jsonify({"error": "Incorrect password"}), 401
+    
+    session.permanent = True
+    session["email"] = user.email
 
     return jsonify({"message": "Login successful!"}), 200
+
+#logout route
+@routes.route("/api/logout", methods=["POST"])
+def logout():
+    session.clear()  #clears everything from session
+    return jsonify({"message": "You have been logged out."}), 200
+
+@routes.route("/api/me", methods=["GET"])
+def me():
+    email = session.get("email")
+
+    if not email:
+        return jsonify({"error": "Not logged in"}), 401
+
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    return jsonify({
+        "email": user.email,
+        "username": user.username,
+        "date_joined": user.date_joined.strftime("%Y-%m-%d")
+    }), 200
 
 #end_game route
 @routes.route("/api/end-game", methods=["POST"])
@@ -359,6 +398,12 @@ def guess():
     #clean and compare
     guess_clean = guessed_word.strip().lower()
     solution = word.word.lower()
+    
+    #check if guess is actually a word(it exists in word tablee)
+    valid_word = Word.query.filter_by(word=guess_clean).first()
+    if not valid_word:
+        return jsonify({"error": "Invalid guess: word not in dictionary"}), 400
+
     if guess_clean == solution:
         correct = True
     else:

@@ -3,9 +3,11 @@ from flask_sqlalchemy import SQLAlchemy
 import os
 from routes import routes
 from models import db, User, Word, GameStat, DailyLife, GameSession, Guess
+from datetime import timedelta
 
 app = Flask(__name__)
 app.register_blueprint(routes)
+app.permanent_session_lifetime = timedelta(days=60)
 
 # Environment-based DB config
 DB_NAME = os.getenv("DB_NAME")
