@@ -216,6 +216,33 @@ def me():
         "date_joined": user.date_joined.strftime("%Y-%m-%d")
     }), 200
 
+#route for deleting account
+@routes.route("/api/delete-account", methods=["POST"])
+def delete_account():
+    email = session.get("email")
+
+    if not email:
+        return jsonify({"error": "You must be logged in to delete your account"}), 401
+
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    #delete user related data from tables
+    GameStat.query.filter_by(user_id=user.id).delete()
+    GameSession.query.filter_by(user_id=user.id).delete()
+    Guess.query.filter_by(user_id=user.id).delete()
+    DailyLife.query.filter_by(user_id=user.id).delete()
+
+    #delete the user account
+    db.session.delete(user)
+    db.session.commit()
+
+    #clear session
+    session.clear()
+
+    return jsonify({"message": "Your account has been deleted."}), 200
+
 #end_game route
 @routes.route("/api/end-game", methods=["POST"])
 def end_game():
