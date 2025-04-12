@@ -4,12 +4,12 @@ import os
 from routes import routes
 from models import db, User, Word, GameStat, DailyLife, GameSession, Guess
 from datetime import timedelta
-from flask_cors import CORS
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path="")
+
 app.secret_key = os.getenv("SECRET_KEY", "fallbacksecretkey")
-CORS(app)
 app.register_blueprint(routes)
+
 app.permanent_session_lifetime = timedelta(days=60)
 
 # Environment-based DB config
@@ -26,9 +26,17 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)  #instead of creating a new SQLAlchemy(app)
 
+#@app.route("/")
+#def home():
+#   return "<h1>hi kitty ^-^</h1>"
+
 @app.route("/")
-def home():
-    return "<h1>hi kitty ^-^</h1>"
+def serve_home():
+    return app.send_static_file("index.html")
+
+@app.route("/game")
+def serve_game():
+    return app.send_static_file("game.html")
 
 #this will now properly use the models
 with app.app_context():

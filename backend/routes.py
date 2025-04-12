@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request, session
-from models import db, Word, User, GameStat, DailyLife, Guess
+from models import db, Word, User, GameStat, DailyLife, Guess, GameSession
 import random
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import date
@@ -95,12 +95,12 @@ def stats(email):
     else:
         today_word = None
 
-    session = GameSession.query.filter_by(user_id=user.id, date=today).first()
+    game_session = GameSession.query.filter_by(user_id=user.id, date=today).first()
     # build today's hint from guesses (if session exists)
     hint = None
-    if session:
-        solution = session.word.word.lower()
-        guesses = Guess.query.filter_by(game_session_id=session.id).all()
+    if game_session:
+        solution = game_session.word.word.lower()
+        guesses = Guess.query.filter_by(game_session_id=game_session.id).all()
 
         if guesses:
             revealed = []
@@ -246,13 +246,15 @@ def delete_account():
 #end_game route
 @routes.route("/api/end-game", methods=["POST"])
 def end_game():
-    data = request.get_json()
+    email = session.get("email")
+    if not email:
+        return jsonify({"error": "Not logged in"}), 401
 
-    email = data.get("email")
+    data = request.get_json()
     won = data.get("won")
     attempts = data.get("attempts")
 
-    if not email or won is None or attempts is None:
+    if won is None or attempts is None:
         return jsonify({"error": "Missing game data"}), 400
 
     user = User.query.filter_by(email=email).first()
@@ -295,11 +297,9 @@ def get_lives(email):
 #route for substracting live
 @routes.route("/api/use-life", methods=["POST"])
 def use_life():
-    data = request.get_json()
-    email = data.get("email")
-
+    email = session.get("email")
     if not email:
-        return jsonify({"error": "Email is required"}), 400
+        return jsonify({"error": "Not logged in"}), 401
 
     user = User.query.filter_by(email=email).first()
     if not user:
@@ -329,8 +329,7 @@ def use_life():
 #start the game
 @routes.route("/api/start-game", methods=["POST"])
 def start_game():
-    data = request.get_json()
-    email = data.get("email")
+    email = session.get("email")
 
     if not email:
         return jsonify({"error": "Email is required"}), 400
@@ -361,8 +360,8 @@ def start_game():
 
     #2) convert list of tuples into list of integers
     used_word_ids = []
-    for session in played_sessions:
-        used_word_ids.append(session[0])
+    for gamesession in played_sessions:
+        used_word_ids.append(gamesession[0])
 
 
     #find words this user hasn't seen yet
@@ -396,12 +395,15 @@ def start_game():
 
 @routes.route("/api/guess", methods=["POST"])
 def guess():
+    email = session.get("email")
+    if not email:
+        return jsonify({"error": "Not logged in"}), 401
+
     data = request.get_json()
-    email = data.get("email")
     guessed_word = data.get("guess")
 
-    if not email or not guessed_word:
-        return jsonify({"error": "Email and guess are required"}), 400
+    if not guessed_word:
+        return jsonify({"error": "Guess is required"}), 400
 
     user = User.query.filter_by(email=email).first()
     if not user:
@@ -410,61 +412,55 @@ def guess():
     today = date.today()
 
     # find the user's active GameSession for today
-    session = GameSession.query.filter_by(user_id=user.id, date=today).first()
-    if not session:
+    game_session = GameSession.query.filter_by(user_id=user.id, date=today).first()
+    if not game_session:
         return jsonify({"error": "No game session found for today"}), 404
 
-    if not session.active:
+    if not game_session.active:
         return jsonify({"message": "You've already completed today's game."}), 403
 
-    word = session.word  # access the Word object via the session
+    word = game_session.word  # access the Word object via the session
 
     if not word:
         return jsonify({"error": "Game word not found"}), 404
 
-    #clean and compare
+    # Clean and compare
     guess_clean = guessed_word.strip().lower()
     solution = word.word.lower()
-    
-    #check if guess is actually a word(it exists in word tablee)
+
+    # Check if guess exists in word table
     valid_word = Word.query.filter_by(word=guess_clean).first()
     if not valid_word:
         return jsonify({"error": "Invalid guess: word not in dictionary"}), 400
 
-    if guess_clean == solution:
-        correct = True
-    else:
-        correct = False
+    correct = guess_clean == solution
 
-    #save new guess in table
+    # Save the guess
     new_guess = Guess(
-    user_id=user.id,
-    game_session_id=session.id,
-    date=today,
-    guess=guess_clean,
-    correct=correct
+        user_id=user.id,
+        game_session_id=game_session.id,
+        date=today,
+        guess=guess_clean,
+        correct=correct
     )
+    db.session.add(new_guess)
 
-    # Wordle-style feedback logic
+    # Feedback logic (Wordle-style)
     feedback = []
     solution_letter_count = {}
 
-    #count how many times each letter appears in the solution
     for letter in solution:
-        if letter in solution_letter_count:
-            solution_letter_count[letter] += 1
-        else:
-            solution_letter_count[letter] = 1
+        solution_letter_count[letter] = solution_letter_count.get(letter, 0) + 1
 
-    #first pass: check for green (correct letter, correct position)
+    # First pass: green letters
     for i in range(len(guess_clean)):
         if guess_clean[i] == solution[i]:
             feedback.append("green")
             solution_letter_count[guess_clean[i]] -= 1
         else:
-            feedback.append(None)  # placeholder for now
+            feedback.append(None)
 
-    #second pass: check for yellow (wrong position) or gray (not in word)
+    # Second pass: yellow or gray
     for i in range(len(guess_clean)):
         if feedback[i] is None:
             letter = guess_clean[i]
@@ -474,7 +470,7 @@ def guess():
             else:
                 feedback[i] = "gray"
 
-    #track today's game stat
+    # Update game stats
     game_stat = GameStat.query.filter_by(user_id=user.id, date=today).first()
     if not game_stat:
         game_stat = GameStat(user_id=user.id, date=today, attempts=0)
@@ -484,7 +480,7 @@ def guess():
 
     if correct:
         game_stat.won = True
-        session.active = False  #mark session as finished
+        game_session.active = False
 
     db.session.commit()
 
@@ -496,13 +492,13 @@ def guess():
         "feedback": feedback
     })
 
+
 @routes.route("/api/use-hint", methods=["POST"])
 def use_hint():
-    data = request.get_json()
-    email = data.get("email")
+    email = session.get("email")
 
     if not email:
-        return jsonify({"error": "Email is required"}), 400
+        return jsonify({"error": "Not logged in"}), 401
 
     user = User.query.filter_by(email=email).first()
     if not user:
@@ -519,26 +515,24 @@ def use_hint():
     if lives.lives_left <= 0:
         return jsonify({"error": "No lives left to use a hint"}), 403
 
-    #get current game session
-    session = GameSession.query.filter_by(user_id=user.id, date=today, active=True).first()
-    if not session:
+    # get current game session
+    game_session = GameSession.query.filter_by(user_id=user.id, date=today, active=True).first()
+    if not game_session:
         return jsonify({"error": "No active game session found"}), 404
 
-    word = session.word
+    word = game_session.word
     if not word:
         return jsonify({"error": "Game word not found"}), 404
 
     solution = word.word.lower()
 
-    #get guesses for this game session only
-    guesses = Guess.query.filter_by(game_session_id=session.id).all()
+    # get guesses for this game session only
+    guesses = Guess.query.filter_by(game_session_id=game_session.id).all()
     if not guesses:
         return jsonify({"error": "You must make at least one guess before using a hint"}), 403
 
-    #build revealed state based on green matches
-    revealed = []
-    for i in range(len(solution)):
-        revealed.append("_")
+    # build revealed state based on green matches
+    revealed = ["_"] * len(solution)
 
     for guess in guesses:
         guess_word = guess.guess.lower()
@@ -546,12 +540,9 @@ def use_hint():
             if i < len(guess_word) and guess_word[i] == solution[i]:
                 revealed[i] = solution[i]  # mark green
 
-    #reveal one unrevealed letter
+    # reveal one unrevealed letter
     import random
-    unrevealed_indices = []
-    for i in range(len(solution)):
-        if revealed[i] == "_":
-            unrevealed_indices.append(i)
+    unrevealed_indices = [i for i, char in enumerate(revealed) if char == "_"]
 
     if not unrevealed_indices:
         return jsonify({"message": "All letters already revealed!"}), 400
@@ -561,7 +552,7 @@ def use_hint():
 
     hint_string = " ".join(revealed)
 
-    # Subtract life + track hint use
+    # subtract life + track hint use
     lives.lives_left -= 1
     lives.hints_used += 1
     db.session.commit()
@@ -572,4 +563,5 @@ def use_hint():
         "lives_left": lives.lives_left,
         "hints_used": lives.hints_used
     })
+
 
