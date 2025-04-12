@@ -4,8 +4,11 @@ import os
 from routes import routes
 from models import db, User, Word, GameStat, DailyLife, GameSession, Guess
 from datetime import timedelta
+from flask_cors import CORS
 
 app = Flask(__name__)
+app.secret_key = os.getenv("SECRET_KEY", "fallbacksecretkey")
+CORS(app)
 app.register_blueprint(routes)
 app.permanent_session_lifetime = timedelta(days=60)
 

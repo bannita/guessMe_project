@@ -1,1 +1,33 @@
 <!-- Login/signup form interface. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Guess Me - Login or Signup</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <h1>Welcome to Guess Me!</h1>
+
+  <div class="form-container">
+    <div class="form-section">
+      <h2>Login</h2>
+      <input type="email" id="login-email" placeholder="Email" />
+      <input type="password" id="login-password" placeholder="Password" />
+      <button onclick="login()">Login</button>
+      <p id="login-error" class="error"></p>
+    </div>
+
+    <div class="form-section">
+      <h2>Signup</h2>
+      <input type="text" id="signup-username" placeholder="Username" />
+      <input type="email" id="signup-email" placeholder="Email" />
+      <input type="password" id="signup-password" placeholder="Password" />
+      <button type="button" onclick="signup()">Signup</button>
+      <p id="signup-error" class="error"></p>
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+</body>
+</html>
