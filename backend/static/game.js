@@ -25,6 +25,7 @@ async function startGame() {
     });
 
     const data = await res.json();
+    console.log("Lives received:", data.lives_left);
 
     if (res.ok) {
       livesDisplay.textContent = `Lives: ${data.lives_left}`;
@@ -120,11 +121,20 @@ async function submitGuess() {
       if (data.correct) {
         message.textContent = "🎉 Congratulations! You guessed it!";
         message.className = "message win";
-        await endGame(true, data.attempts); // ✅ Record win
+        await endGame(true, data.attempts); //record win
+
+        setTimeout(() => {
+          window.location.href = "/stats";
+        }, 1000); //delay to show message briefly
+
       } else if (currentRow === NUM_ROWS) {
         message.textContent = `😢 You lost! The correct word was: ${data.solution_word}`;
         message.className = "message lose";
-        await endGame(false, data.attempts); // ✅ Record loss
+        await endGame(false, data.attempts); //record loss
+
+        setTimeout(() => {
+          window.location.href = "/stats";
+        }, 1500); //slightly longer delay for dramatic effect
       }
     } else {
       showMessage(data.error || "Invalid guess");

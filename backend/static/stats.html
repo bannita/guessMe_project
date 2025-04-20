@@ -1,1 +1,34 @@
 <!--Displays user stats after the game.-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Game Stats - Guess Me</title>
+  <link rel="stylesheet" href="stats.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>📊 Game Summary</h1>
+    
+    <p id="result" class="result"></p>
+
+    <div class="stats-box">
+      <p><strong>Games Played:</strong> <span id="gamesPlayed">0</span></p>
+      <p><strong>Wins:</strong> <span id="wins">0</span></p>
+      <p><strong>Current Streak:</strong> <span id="currentStreak">0</span></p>
+      <p><strong>Max Streak:</strong> <span id="maxStreak">0</span></p>
+      <p><strong>Lives Left:</strong> <span id="livesLeft">0</span></p>
+      <p><strong>Hints Used:</strong> <span id="hintsUsed">0</span></p>
+      <p id="correctWordRow" class="highlight"></p>
+      <p id="attemptsRow"></p>
+    </div>
+
+    <div class="buttons">
+      <button id="replayBtn">🔁 Play Again</button>
+      <p id="noLivesMsg" class="warning"></p>
+    </div>
+  </div>
+
+  <script src="stats.js" defer></script>
+</body>
+</html>

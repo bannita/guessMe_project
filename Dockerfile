@@ -9,6 +9,11 @@ ENV PYTHONDONTWRITEBYTECODE=1
 # Turns off buffering for easier container logging
 ENV PYTHONUNBUFFERED=1
 
+# Set timezone
+RUN apt-get update && apt-get install -y libpq-dev gcc tzdata && \
+    ln -sf /usr/share/zoneinfo/Asia/Tbilisi /etc/localtime && \
+    echo "Asia/Tbilisi" > /etc/timezone
+
 # Add system dependencies for PostgreSQL
 RUN apt-get update && apt-get install -y libpq-dev gcc
 

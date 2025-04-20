@@ -51,26 +51,27 @@ def stats(email):
         if game.won:
             wins += 1
 
-    #calculate win streak
-    current_streak = 0
+    # sort games by date or ID (you already do this)
+    games_sorted = sorted(games, key=lambda g: g.id)
+
+    # Calculate max streak
     max_streak = 0
     temp_streak = 0
-
-    #calculate max streak
-    for game in games:
+    for game in games_sorted:
         if game.won:
             temp_streak += 1
-            if temp_streak > max_streak:
-                max_streak = temp_streak
+            max_streak = max(max_streak, temp_streak)
         else:
             temp_streak = 0
 
-    #check if the streak is still going
+    # Calculate current streak (wins in a row from most recent game backwards)
     current_streak = 0
-    if len(games) > 0:
-        last_game = games[len(games) - 1]
-        if last_game.won:
-            current_streak = temp_streak
+    for game in reversed(games_sorted):
+        if game.won:
+            current_streak += 1
+        else:
+            break  # streak is broken
+
 
     #get lives for today
     today = date.today()
@@ -85,17 +86,15 @@ def stats(email):
         hints_used = lives.hints_used
     else:
         hints_used = 0
-    
-    #get today's chosen word
-    used_words = Word.query.filter_by(is_solution=True, used=True).all()
 
-    if len(used_words) > 0:
-        last_used_word = used_words[len(used_words) - 1]
-        today_word = last_used_word.word
-    else:
-        today_word = None
+    # get today's chosen word from this user's game session
+    today_word = None
+    #game_session = GameSession.query.filter_by(user_id=user.id, date=today).first()
+    game_session = GameSession.query.filter_by(user_id=user.id, date=today).order_by(GameSession.id.desc()).first()
 
-    game_session = GameSession.query.filter_by(user_id=user.id, date=today).first()
+    if game_session and game_session.word:
+        today_word = game_session.word.word
+
     # build today's hint from guesses (if session exists)
     hint = None
     if game_session:
@@ -113,7 +112,11 @@ def stats(email):
                     if i < len(guess_word) and guess_word[i] == solution[i]:
                         revealed[i] = solution[i]
 
-    hint = " ".join(revealed)
+            hint = " ".join(revealed)
+
+    attempts = 0
+    if game_session:
+        attempts = Guess.query.filter_by(game_session_id=game_session.id).count()
 
     return jsonify({
         "games_played": games_played,
@@ -123,7 +126,8 @@ def stats(email):
         "lives_left": lives_left,
         "hints_used": hints_used,
         "today_word": today_word,
-        "hint": hint
+        "hint": hint,
+        "attempts": attempts,
     })
 
 #check validity of email
@@ -263,12 +267,15 @@ def end_game():
     if not user:
         return jsonify({"error": "User not found"}), 404
 
-    game = GameStat(
-        user_id=user.id,
-        won=bool(won),
-        attempts=int(attempts)
-    )
-    db.session.add(game)
+    today = date.today()
+
+    game = GameStat.query.filter_by(user_id=user.id, date=today).order_by(GameStat.id.desc()).first()
+    if game:
+        game.won = bool(won)
+        game.attempts = int(attempts)
+    else:
+        game = GameStat(user_id=user.id, date=today, won=bool(won), attempts=int(attempts))
+
     db.session.commit()
 
     # mark the active session as done
@@ -357,7 +364,7 @@ def start_game():
         db.session.add(lives)
         db.session.commit()
 
-        lives = DailyLife.query.filter_by(user_id=user.id, date=today).first()
+    lives = DailyLife.query.filter_by(user_id=user.id, date=today).first()
 
     if lives.lives_left <= 0:
         return jsonify({"error": "No lives left to start a game", "lives_left": lives.lives_left}), 403
@@ -573,5 +580,14 @@ def use_hint():
         "lives_left": lives.lives_left,
         "hints_used": lives.hints_used
     })
+
+@routes.route("/api/stats/me")
+def stats_me():
+    email = session.get("email")
+    if not email:
+        return jsonify({"error": "Not logged in"}), 401
+
+    return stats(email)  # use your existing stats function
+
 
 

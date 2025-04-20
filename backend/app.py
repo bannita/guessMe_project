@@ -52,6 +52,13 @@ def serve_game():
         return redirect("/")
     return app.send_static_file("game.html")
 
+@app.route("/stats")
+def serve_stats():
+    if "email" not in session:
+        return redirect("/")
+    return app.send_static_file("stats.html")
+
+
 #this will now properly use the models
 with app.app_context():
     db.create_all()
