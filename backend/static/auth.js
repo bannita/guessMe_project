@@ -13,14 +13,17 @@ async function login() {
     const response = await fetch(`${BASE_URL}/api/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({ email, password })
     });
 
     const data = await response.json();
 
     if (response.ok) {
-      // Redirect to game page on success
-      window.location.href = "game.html";
+      // ✅ redirect to game page after session sets
+      setTimeout(() => {
+        window.location.href = "/game";
+      }, 300);
     } else {
       errorBox.innerText = data.error || "Login failed.";
     }
@@ -40,14 +43,15 @@ async function signup() {
     const response = await fetch(`${BASE_URL}/api/signup`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({ username, email, password })
     });
 
     const data = await response.json();
 
     if (response.ok) {
-      // Redirect to game page on success
-      window.location.href = "game.html";
+      console.log("✅ Signup success! Redirecting now...");
+      window.location.replace("/game");
     } else {
       errorBox.innerText = data.error || "Signup failed.";
     }

@@ -72,6 +72,38 @@ button {
 /* Messages */
 .message {
   margin-top: 15px;
-  font-size: 16px;
+  font-size: 18px;
+  font-weight: bold;
   color: #444;
+}
+
+.message.win {
+  color: #2e7d32; /* green */
+}
+
+.message.lose {
+  color: #c62828; /* red */
+}
+
+.hint {
+  font-size: 18px;
+  font-weight: bold;
+  color: #444;
+  margin-top: 10px;
+  letter-spacing: 5px;
+}
+
+#logoutBtn {
+  margin-left: 10px;
+  background-color: #e53935;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+#logoutBtn:hover {
+  background-color: #c62828;
 }

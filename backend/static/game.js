@@ -116,11 +116,15 @@ async function submitGuess() {
       updateTileFeedback(data.feedback);
       currentRow++;
       currentCol = 0;
-
+    
       if (data.correct) {
-        showMessage("🎉 Correct!");
+        message.textContent = "🎉 Congratulations! You guessed it!";
+        message.className = "message win";
+        await endGame(true, data.attempts); // ✅ Record win
       } else if (currentRow === NUM_ROWS) {
-        showMessage("😢 Out of guesses!");
+        message.textContent = `😢 You lost! The correct word was: ${data.solution_word}`;
+        message.className = "message lose";
+        await endGame(false, data.attempts); // ✅ Record loss
       }
     } else {
       showMessage(data.error || "Invalid guess");
@@ -155,7 +159,7 @@ hintBtn.addEventListener("click", async () => {
 
     if (res.ok) {
       livesDisplay.textContent = `Lives: ${data.lives_left}`;
-      showMessage(`Hint: ${data.hint}`);
+      document.getElementById("hint").textContent = `Hint: ${data.hint}`;
     } else {
       // Update lives if backend still returns lives_left in error response
       if (data.lives_left !== undefined) {
@@ -177,3 +181,33 @@ function showMessage(text) {
     message.textContent = "";
   }, 2500);
 }
+
+async function endGame(won, attempts) {
+  try {
+    await fetch(`${BASE_URL}/api/end-game`, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ won, attempts })
+    });
+  } catch (err) {
+    console.error("Failed to record game result:", err);
+  }
+}
+
+document.getElementById("logoutBtn").addEventListener("click", async () => {
+  try {
+    await fetch(`${BASE_URL}/api/logout`, {
+      method: "POST",
+      credentials: "include"
+    });
+    
+    setTimeout(() => {
+      window.location.href = "/index.html";
+    }, 300); // Wait 300ms to let cookie clear and then redirect to login/signup page
+  } catch (err) {
+    console.error("Logout failed:", err);
+  }
+});

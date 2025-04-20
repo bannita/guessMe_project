@@ -151,7 +151,6 @@ def signup():
     if not is_valid_email(email):
         return jsonify({"error": "Invalid email format"}), 400
 
-    #check if user already exists
     existing_user = User.query.filter(
         (User.username == username) | (User.email == email)
     ).first()
@@ -159,13 +158,16 @@ def signup():
     if existing_user:
         return jsonify({"error": "Username or email already in use"}), 409
 
-    #create new user
     hashed_password = generate_password_hash(password)
     new_user = User(username=username, email=email, password=hashed_password)
     db.session.add(new_user)
     db.session.commit()
 
+    session.permanent = True
+    session["email"] = new_user.email
+
     return jsonify({"message": "Signup successful!"}), 201
+
 
 #login route
 @routes.route("/api/login", methods=["POST"])
@@ -268,6 +270,14 @@ def end_game():
     )
     db.session.add(game)
     db.session.commit()
+
+    # mark the active session as done
+    today = date.today()
+    session_to_close = GameSession.query.filter_by(user_id=user.id, date=today, active=True).first()
+    if session_to_close:
+        session_to_close.active = False
+        db.session.commit()
+
 
     return jsonify({"message": "Game result recorded"}), 201
 
@@ -379,13 +389,12 @@ def start_game():
     #pick one random word
     chosen_word = random.choice(available_words)
 
-    # Create a GameSession for today
-    existing_session = GameSession.query.filter_by(user_id=user.id, date=today, active=True).first()
-    if existing_session:
-        existing_session.word_id = chosen_word.id
-    else:
-        new_session = GameSession(user_id=user.id, word_id=chosen_word.id, date=today)
-        db.session.add(new_session)
+   # Mark all previous sessions as inactive
+    GameSession.query.filter_by(user_id=user.id, date=today).update({"active": False})
+
+    # Always create a new session when starting a game
+    new_session = GameSession(user_id=user.id, word_id=chosen_word.id, date=today)
+    db.session.add(new_session)
 
     db.session.commit()
 
@@ -415,12 +424,10 @@ def guess():
     today = date.today()
 
     # find the user's active GameSession for today
-    game_session = GameSession.query.filter_by(user_id=user.id, date=today).first()
-    if not game_session:
-        return jsonify({"error": "No game session found for today"}), 404
+    game_session = GameSession.query.filter_by(user_id=user.id, date=today, active=True).first()
 
-    if not game_session.active:
-        return jsonify({"message": "You've already completed today's game."}), 403
+    if not game_session:
+        return jsonify({"error": "No active game session found for today"}), 403
 
     word = game_session.word  # access the Word object via the session
 
@@ -490,7 +497,7 @@ def guess():
     return jsonify({
         "correct": correct,
         "your_guess": guessed_word,
-        "solution_word": word.word if correct else None,
+        "solution_word": word.word,
         "attempts": game_stat.attempts,
         "feedback": feedback
     })
