@@ -1,102 +1,77 @@
-/* Reset & layout */
 body {
-    font-family: 'Segoe UI', sans-serif;
-    background-color: #f9f9f9;
-    text-align: center;
-    padding: 20px;
-    margin: 0;
-  }
-  
-  .container {
-    max-width: 600px;
-    margin: auto;
-  }
-  
-  header {
-    margin-bottom: 20px;
-  }
-  
-  #lives {
-    font-weight: bold;
-    margin-top: 10px;
-  }
-  
-  button {
-    cursor: pointer;
-    font-size: 16px;
-  }
-  
-  /* Grid */
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(5, 60px);
-    grid-gap: 8px;
-    justify-content: center;
-    margin-bottom: 30px;
-  }
-  
-  .tile {
-    width: 60px;
-    height: 60px;
-    border: 2px solid #ccc;
-    font-size: 32px;
-    font-weight: bold;
-    line-height: 60px;
-    text-transform: uppercase;
-    background-color: white;
-    transition: 0.2s ease;
-  }
-  
-  .tile.filled {
-    border-color: #999;
-  }
-  
-  /* Feedback colors */
-  .tile.green {
-    background-color: #6aaa64;
-    color: white;
-    border-color: #6aaa64;
-  }
-  
-  .tile.yellow {
-    background-color: #c9b458;
-    color: white;
-    border-color: #c9b458;
-  }
-  
-  .tile.gray {
-    background-color: #787c7e;
-    color: white;
-    border-color: #787c7e;
-  }
-  
-  /* Keyboard */
-  .keyboard {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
-    max-width: 600px;
-    margin: 0 auto;
-    gap: 5px;
-  }
-  
-  .key {
-    padding: 10px;
-    border: none;
-    background-color: #eee;
-    font-weight: bold;
-    border-radius: 4px;
-    text-transform: uppercase;
-    transition: 0.2s ease;
-  }
-  
-  .key:hover {
-    background-color: #ddd;
-  }
-  
-  /* Messages */
-  .message {
-    margin-top: 15px;
-    font-size: 16px;
-    color: #444;
-  }
-  
+  font-family: 'Segoe UI', sans-serif;
+  background-color: #f9f9f9;
+  text-align: center;
+  padding: 20px;
+  margin: 0;
+}
+
+.container {
+  max-width: 600px;
+  margin: auto;
+}
+
+header {
+  margin-bottom: 20px;
+}
+
+#lives {
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+button {
+  cursor: pointer;
+  font-size: 16px;
+}
+
+/* Grid */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(5, 60px);
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 30px;
+}
+
+.tile {
+  width: 60px;
+  height: 60px;
+  border: 2px solid #ccc;
+  font-size: 32px;
+  font-weight: bold;
+  line-height: 60px;
+  text-transform: uppercase;
+  background-color: white;
+  transition: 0.2s ease;
+}
+
+.tile.filled {
+  border-color: #999;
+}
+
+/* Feedback colors */
+.tile.green {
+  background-color: #6aaa64;
+  color: white;
+  border-color: #6aaa64;
+}
+
+.tile.yellow {
+  background-color: #c9b458;
+  color: white;
+  border-color: #c9b458;
+}
+
+.tile.gray {
+  background-color: #787c7e;
+  color: white;
+  border-color: #787c7e;
+}
+
+/* Messages */
+.message {
+  margin-top: 15px;
+  font-size: 16px;
+  color: #444;
+}

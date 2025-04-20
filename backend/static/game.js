@@ -8,7 +8,6 @@ let currentCol = 0;
 let guesses = Array.from({ length: NUM_ROWS }, () => Array(WORD_LENGTH).fill(""));
 
 const grid = document.getElementById("guessGrid");
-const keyboard = document.getElementById("keyboard");
 const message = document.getElementById("message");
 const livesDisplay = document.getElementById("lives");
 const hintBtn = document.getElementById("hintBtn");
@@ -22,7 +21,7 @@ async function startGame() {
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({}) // We no longer send email
+      body: JSON.stringify({})
     });
 
     const data = await res.json();
@@ -31,6 +30,10 @@ async function startGame() {
       livesDisplay.textContent = `Lives: ${data.lives_left}`;
       console.log("Game started:", data.word);
     } else {
+      // 🔥 FIX: If error includes lives_left, update display
+      if (data.lives_left !== undefined) {
+        livesDisplay.textContent = `Lives: ${data.lives_left}`;
+      }
       showMessage(data.error || "Failed to start game");
     }
   } catch (err) {
@@ -40,7 +43,8 @@ async function startGame() {
 }
 startGame();
 
-// === Create Grid & Keyboard ===
+
+// === Create Grid ===
 function createGrid() {
   for (let row = 0; row < NUM_ROWS; row++) {
     for (let col = 0; col < WORD_LENGTH; col++) {
@@ -53,29 +57,20 @@ function createGrid() {
 }
 createGrid();
 
-const keys = [..."QWERTYUIOP", ..."ASDFGHJKL", "Enter", ..."ZXCVBNM", "←"];
-function createKeyboard() {
-  keys.forEach(key => {
-    const keyBtn = document.createElement("button");
-    keyBtn.textContent = key;
-    keyBtn.classList.add("key");
-    keyBtn.addEventListener("click", () => handleKeyPress(key));
-    keyboard.appendChild(keyBtn);
-  });
-}
-createKeyboard();
+// === Listen for real keyboard input ===
+document.addEventListener("keydown", (e) => {
+  const key = e.key;
 
-// === Input Handling ===
-function handleKeyPress(key) {
-  if (key === "←") {
-    deleteLetter();
-  } else if (key === "Enter") {
+  if (key === "Enter") {
     submitGuess();
-  } else if (/^[A-Z]$/.test(key)) {
-    addLetter(key);
+  } else if (key === "Backspace") {
+    deleteLetter();
+  } else if (/^[a-zA-Z]$/.test(key)) {
+    addLetter(key.toUpperCase());
   }
-}
+});
 
+// === Letter handling ===
 function addLetter(letter) {
   if (currentCol < WORD_LENGTH) {
     guesses[currentRow][currentCol] = letter;
@@ -112,7 +107,7 @@ async function submitGuess() {
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ guess: guessWord }) // No email
+      body: JSON.stringify({ guess: guessWord })
     });
 
     const data = await res.json();
@@ -162,8 +157,13 @@ hintBtn.addEventListener("click", async () => {
       livesDisplay.textContent = `Lives: ${data.lives_left}`;
       showMessage(`Hint: ${data.hint}`);
     } else {
+      // Update lives if backend still returns lives_left in error response
+      if (data.lives_left !== undefined) {
+        livesDisplay.textContent = `Lives: ${data.lives_left}`;
+      }
       showMessage(data.error || "No hints available");
     }
+    
   } catch (err) {
     console.error("Hint error:", err);
     showMessage("Server error");

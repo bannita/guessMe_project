@@ -347,8 +347,11 @@ def start_game():
         db.session.add(lives)
         db.session.commit()
 
+        lives = DailyLife.query.filter_by(user_id=user.id, date=today).first()
+
     if lives.lives_left <= 0:
-        return jsonify({"error": "No lives left to start a game"}), 403
+        return jsonify({"error": "No lives left to start a game", "lives_left": lives.lives_left}), 403
+
 
     #subtract 1 life
     lives.lives_left -= 1
