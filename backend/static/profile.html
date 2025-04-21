@@ -1,0 +1,39 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Profile Info</title>
+  <link rel="stylesheet" href="profile.css" />
+</head>
+<body>
+  <div class="card">
+    <h1>👤 Your Profile</h1>
+
+    <div class="info">
+      <p><strong>Username:</strong> <span id="username">Loading...</span></p>
+      <p><strong>Email:</strong> <span id="email">Loading...</span></p>
+    </div>
+
+    <div class="actions">
+      <button id="logoutBtn" class="logout">Logout</button>
+      <button id="deleteBtn" class="danger">Delete Account</button>
+    </div>
+
+    <hr />
+    <h3>🔑 Change Password</h3>
+    <form id="changePasswordForm">
+      <input type="password" id="currentPassword" placeholder="Current password" required />
+      <br />
+      <input type="password" id="newPassword" placeholder="New password" required />
+      <br />
+      <button type="submit">Change Password</button>
+    </form>
+    <p id="passwordMsg" class="message"></p>
+
+    <button id="backBtn" class="back">← Back</button>
+  </div>
+
+  <script src="profile.js" defer></script>
+</body>
+</html>

@@ -107,3 +107,44 @@ button {
 #logoutBtn:hover {
   background-color: #c62828;
 }
+
+.hidden {
+  display: none;
+}
+
+#noLivesContainer {
+  margin-top: 50px;
+  text-align: center;
+}
+
+#noLivesContainer h2 {
+  font-size: 24px;
+  color: #e53935;
+}
+
+#noLivesContainer button {
+  margin: 10px;
+  padding: 10px 18px;
+  font-size: 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+#goToStatsBtn {
+  background-color: #43a047;
+  color: white;
+}
+
+#goToProfileBtn {
+  background-color: #1e88e5;
+  color: white;
+}
+
+#goToStatsBtn:hover {
+  background-color: #2e7d32;
+}
+
+#goToProfileBtn:hover {
+  background-color: #1565c0;
+}

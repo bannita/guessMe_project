@@ -9,11 +9,18 @@
 <body>
   <div class="container">
     <header>
-      <h1>Guess Me</h1>
+      <h1>🎯 Guess Me</h1>
       <p id="lives">Lives: 5</p>
       <button id="hintBtn">Use Hint</button>
+      <button id="profileBtn">👤 Profile</button>
       <button id="logoutBtn">Logout</button>
     </header>
+    
+    <div id="noLivesContainer" class="hidden">
+      <h2>💔 You're out of lives today.</h2>
+      <p>Come back tomorrow for more tries!</p>
+      <button id="goToStatsBtn">📊 View My Stats</button>
+    </div>
 
     <main>
       <div id="guessGrid" class="grid"></div>

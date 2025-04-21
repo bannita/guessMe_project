@@ -45,7 +45,6 @@ def serve_home():
         return app.send_static_file("index.html")
     return redirect("/game")
 
-
 @app.route("/game")
 def serve_game():
     if not session.get("email"):
@@ -57,6 +56,21 @@ def serve_stats():
     if "email" not in session:
         return redirect("/")
     return app.send_static_file("stats.html")
+
+@app.route("/profile")
+def serve_profile():
+    if "email" not in session:
+        return redirect("/")
+    return app.send_static_file("profile.html")
+
+@app.route("/admin")
+def serve_admin():
+    email = session.get("email")
+    if email != "anibidzinashvili98@gmail.com":
+        return redirect("/")
+    return app.send_static_file("admin.html")
+
+
 
 
 #this will now properly use the models

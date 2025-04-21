@@ -30,11 +30,28 @@ async function startGame() {
     if (res.ok) {
       livesDisplay.textContent = `Lives: ${data.lives_left}`;
       console.log("Game started:", data.word);
+
+      // ✅ If lives are already 0 (shouldn’t happen here, but safe check)
+      if (data.lives_left <= 0) {
+        document.getElementById("noLivesContainer").classList.remove("hidden");
+        document.getElementById("guessGrid").style.display = "none";
+        document.getElementById("keyboard")?.remove();
+        hintBtn.style.display = "none";
+      }
+
     } else {
-      // 🔥 FIX: If error includes lives_left, update display
+      // ✅ Error case — check if response contains lives_left
       if (data.lives_left !== undefined) {
         livesDisplay.textContent = `Lives: ${data.lives_left}`;
+
+        if (data.lives_left <= 0) {
+          document.getElementById("noLivesContainer").classList.remove("hidden");
+          document.getElementById("guessGrid").style.display = "none";
+          document.getElementById("keyboard")?.remove();
+          hintBtn.style.display = "none";
+        }
       }
+
       showMessage(data.error || "Failed to start game");
     }
   } catch (err) {
@@ -43,6 +60,7 @@ async function startGame() {
   }
 }
 startGame();
+
 
 
 // === Create Grid ===
@@ -169,6 +187,11 @@ hintBtn.addEventListener("click", async () => {
 
     if (res.ok) {
       livesDisplay.textContent = `Lives: ${data.lives_left}`;
+      if (data.lives_left <= 0) {
+        hintBtn.disabled = true;
+        hintBtn.style.opacity = "0.5";
+        hintBtn.title = "You're out of lives, You cannot request more hints!";
+      }
       document.getElementById("hint").textContent = `Hint: ${data.hint}`;
     } else {
       // Update lives if backend still returns lives_left in error response
@@ -221,3 +244,15 @@ document.getElementById("logoutBtn").addEventListener("click", async () => {
     console.error("Logout failed:", err);
   }
 });
+
+const profileBtn = document.getElementById("profileBtn");
+if (profileBtn) {
+  profileBtn.addEventListener("click", () => {
+    window.location.href = "/profile";
+  });
+}
+
+document.getElementById("goToStatsBtn").addEventListener("click", () => {
+  window.location.href = "/stats";
+});
+

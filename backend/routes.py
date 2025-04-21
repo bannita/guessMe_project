@@ -34,7 +34,7 @@ def check_word(guess):
         "valid": bool(w),
         "is_solution": w.is_solution if w else False
     })
-
+'''
 #user stats
 @routes.route("/api/stats/<email>")
 def stats(email):
@@ -117,6 +117,90 @@ def stats(email):
     attempts = 0
     if game_session:
         attempts = Guess.query.filter_by(game_session_id=game_session.id).count()
+
+    return jsonify({
+        "games_played": games_played,
+        "wins": wins,
+        "current_streak": current_streak,
+        "max_streak": max_streak,
+        "lives_left": lives_left,
+        "hints_used": hints_used,
+        "today_word": today_word,
+        "hint": hint,
+        "attempts": attempts,
+    })
+'''
+@routes.route("/api/stats/<email>")
+def stats(email):
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    games = GameStat.query.filter_by(user_id=user.id).all()
+    games_played = len(games)
+
+    # Count total wins
+    wins = 0
+    for game in games:
+        if game.won:
+            wins += 1
+
+    # Sort by ID to determine streaks
+    games_sorted = sorted(games, key=lambda g: g.id)
+
+    # Max streak
+    max_streak = 0
+    temp_streak = 0
+    for game in games_sorted:
+        if game.won:
+            temp_streak += 1
+            max_streak = max(max_streak, temp_streak)
+        else:
+            temp_streak = 0
+
+    # Current streak
+    current_streak = 0
+    for game in reversed(games_sorted):
+        if game.won:
+            current_streak += 1
+        else:
+            break
+
+    today = date.today()
+    lives_left = 0
+    hints_used = 0
+    attempts = 0
+    today_word = None
+    hint = None
+
+    # ✅ Find most recent session (even if multiple exist for today)
+    game_session = GameSession.query.filter_by(user_id=user.id, date=today).order_by(GameSession.id.desc()).first()
+
+    if game_session:
+        # ✅ Lives from DailyLife
+        lives = DailyLife.query.filter_by(user_id=user.id, date=today).first()
+        if lives:
+            lives_left = lives.lives_left
+            hints_used = lives.hints_used
+
+        # ✅ Correct word
+        if game_session.word:
+            today_word = game_session.word.word
+            solution = today_word.lower()
+
+            # ✅ Guesses tied to this session only
+            guesses = Guess.query.filter_by(game_session_id=game_session.id).all()
+            attempts = len(guesses)
+
+            # Build hint
+            if guesses:
+                revealed = ["_"] * len(solution)
+                for guess in guesses:
+                    guess_word = guess.guess.lower()
+                    for i in range(len(solution)):
+                        if i < len(guess_word) and guess_word[i] == solution[i]:
+                            revealed[i] = solution[i]
+                hint = " ".join(revealed)
 
     return jsonify({
         "games_played": games_played,
@@ -234,59 +318,21 @@ def delete_account():
     if not user:
         return jsonify({"error": "User not found"}), 404
 
-    #delete user related data from tables
+    #Delete guesses first (they depend on game_sessions)
+    Guess.query.filter_by(user_id=user.id).delete()
+    
+    # Now safe to delete sessions and other stats
     GameStat.query.filter_by(user_id=user.id).delete()
     GameSession.query.filter_by(user_id=user.id).delete()
-    Guess.query.filter_by(user_id=user.id).delete()
     DailyLife.query.filter_by(user_id=user.id).delete()
 
-    #delete the user account
+    # Finally, delete the user
     db.session.delete(user)
     db.session.commit()
 
-    #clear session
     session.clear()
 
     return jsonify({"message": "Your account has been deleted."}), 200
-
-#end_game route
-@routes.route("/api/end-game", methods=["POST"])
-def end_game():
-    email = session.get("email")
-    if not email:
-        return jsonify({"error": "Not logged in"}), 401
-
-    data = request.get_json()
-    won = data.get("won")
-    attempts = data.get("attempts")
-
-    if won is None or attempts is None:
-        return jsonify({"error": "Missing game data"}), 400
-
-    user = User.query.filter_by(email=email).first()
-    if not user:
-        return jsonify({"error": "User not found"}), 404
-
-    today = date.today()
-
-    game = GameStat.query.filter_by(user_id=user.id, date=today).order_by(GameStat.id.desc()).first()
-    if game:
-        game.won = bool(won)
-        game.attempts = int(attempts)
-    else:
-        game = GameStat(user_id=user.id, date=today, won=bool(won), attempts=int(attempts))
-
-    db.session.commit()
-
-    # mark the active session as done
-    today = date.today()
-    session_to_close = GameSession.query.filter_by(user_id=user.id, date=today, active=True).first()
-    if session_to_close:
-        session_to_close.active = False
-        db.session.commit()
-
-
-    return jsonify({"message": "Game result recorded"}), 201
 
 #route for giving lives
 @routes.route("/api/lives/<email>")
@@ -343,6 +389,50 @@ def use_life():
         "lives_left": lives.lives_left
     })
 
+#end_game route
+@routes.route("/api/end-game", methods=["POST"])
+def end_game():
+    email = session.get("email")
+    if not email:
+        return jsonify({"error": "Not logged in"}), 401
+
+    data = request.get_json()
+    won = data.get("won")
+    attempts = data.get("attempts")
+
+    if won is None or attempts is None:
+        return jsonify({"error": "Missing game data"}), 400
+
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    today = date.today()
+
+    # ✅ Always create a new GameStat
+    new_game = GameStat(
+        user_id=user.id,
+        date=today,
+        won=bool(won),
+        attempts=int(attempts)
+    )
+    db.session.add(new_game)
+
+    # ✅ Close the current session
+    session_to_close = GameSession.query.filter_by(user_id=user.id, date=today, active=True).first()
+    if session_to_close:
+        session_to_close.active = False
+
+    # ✅ Subtract a life
+    lives = DailyLife.query.filter_by(user_id=user.id, date=today).first()
+    if lives and lives.lives_left > 0:
+        lives.lives_left -= 1
+
+    db.session.commit()
+    return jsonify({"message": "Game result recorded"}), 201
+
+
+
 #start the game
 @routes.route("/api/start-game", methods=["POST"])
 def start_game():
@@ -369,9 +459,6 @@ def start_game():
     if lives.lives_left <= 0:
         return jsonify({"error": "No lives left to start a game", "lives_left": lives.lives_left}), 403
 
-
-    #subtract 1 life
-    lives.lives_left -= 1
     db.session.commit()
 
     #get word IDs this user has already played
@@ -588,6 +675,139 @@ def stats_me():
         return jsonify({"error": "Not logged in"}), 401
 
     return stats(email)  # use your existing stats function
+
+
+@routes.route("/api/admin/users", methods=["GET"])
+def admin_get_users():
+    email = session.get("email")
+    if email != "anibidzinashvili98@gmail.com":
+        return jsonify({"error": "Unauthorized"}), 403
+
+    users = User.query.all()
+    user_list = []
+    for user in users:
+        user_list.append({
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "date_joined": user.date_joined.strftime("%Y-%m-%d")
+        })
+
+    return jsonify(user_list), 200
+
+@routes.route("/api/admin/delete-user/<int:user_id>", methods=["DELETE"])
+def admin_delete_user(user_id):
+    email = session.get("email")
+    if email != "anibidzinashvili98@gmail.com":
+        return jsonify({"error": "Unauthorized"}), 403
+
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    # Clean up user's related data
+    Guess.query.filter_by(user_id=user.id).delete()
+    GameSession.query.filter_by(user_id=user.id).delete()
+    GameStat.query.filter_by(user_id=user.id).delete()
+    DailyLife.query.filter_by(user_id=user.id).delete()
+
+    db.session.delete(user)
+    db.session.commit()
+
+    return jsonify({"message": f"User {user.username} deleted."}), 200
+
+@routes.route("/api/admin/words", methods=["GET"])
+def admin_get_words():
+    email = session.get("email")
+    if email != "anibidzinashvili98@gmail.com":
+        return jsonify({"error": "Unauthorized"}), 403
+
+    words = Word.query.all()
+    word_list = []
+    for word in words:
+        word_list.append({
+            "id": word.id,
+            "word": word.word,
+            "is_solution": word.is_solution,
+            "used": word.used
+        })
+
+    return jsonify(word_list), 200
+
+@routes.route("/api/admin/add-word", methods=["POST"])
+def admin_add_word():
+    email = session.get("email")
+    if email != "anibidzinashvili98@gmail.com":
+        return jsonify({"error": "Unauthorized"}), 403
+
+    data = request.get_json()
+    word_text = data.get("word", "").strip().lower()
+    is_solution = data.get("is_solution", False)
+
+    if not word_text:
+        return jsonify({"error": "Word is required"}), 400
+
+    #check if word already exists
+    existing = Word.query.filter_by(word=word_text).first()
+    if existing:
+        return jsonify({"error": "Word already exists"}), 409
+
+    new_word = Word(
+        word=word_text,
+        is_solution=is_solution,
+        used=False
+    )
+    db.session.add(new_word)
+    db.session.commit()
+
+    return jsonify({"message": f"Word '{word_text}' added."}), 201
+
+@routes.route("/api/admin/delete-word/<int:word_id>", methods=["DELETE"])
+def admin_delete_word(word_id):
+    email = session.get("email")
+    if email != "anibidzinashvili98@gmail.com":
+        return jsonify({"error": "Unauthorized"}), 403
+
+    word = Word.query.get(word_id)
+    if not word:
+        return jsonify({"error": "Word not found"}), 404
+
+    db.session.delete(word)
+    db.session.commit()
+
+    return jsonify({"message": f"Word '{word.word}' deleted."}), 200
+
+@routes.route("/api/change-password", methods=["POST"])
+def change_password():
+    email = session.get("email")
+    if not email:
+        return jsonify({"error": "Not logged in"}), 401
+
+    data = request.get_json()
+    current_pw = data.get("current_password")
+    new_pw = data.get("new_password")
+
+    if not current_pw or not new_pw:
+        return jsonify({"error": "Both current and new passwords are required."}), 400
+
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    # Check current password
+    if not check_password_hash(user.password, current_pw):
+        return jsonify({"error": "Current password is incorrect."}), 403
+
+    # Update password
+    user.password = generate_password_hash(new_pw)
+    db.session.commit()
+
+    return jsonify({"message": "Password changed successfully."}), 200
+
+
+
+
+
 
 
 

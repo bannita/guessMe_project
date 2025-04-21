@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Panel</title>
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body>
+  <div class="admin-container">
+    <h1>🔧 Admin Panel</h1>
+
+    <section>
+      <h2>👥 Users</h2>
+      <ul id="userList"></ul>
+    </section>
+
+    <section>
+      <h2>📝 Words</h2>
+      <form id="addWordForm">
+        <input type="text" id="newWord" placeholder="Enter new word" required />
+        <label>
+          <input type="checkbox" id="isSolution" />
+          Is Solution Word
+        </label>
+        <button type="submit">Add Word</button>
+      </form>
+      <ul id="wordList"></ul>
+    </section>
+
+    <button onclick="window.location.href='/game'">← Back to Game</button>
+  </div>
+
+  <script src="admin.js" defer></script>
+</body>
+</html>
