@@ -34,89 +34,64 @@ def check_word(guess):
         "valid": bool(w),
         "is_solution": w.is_solution if w else False
     })
-'''
-#user stats
+
 @routes.route("/api/stats/<email>")
 def stats(email):
     user = User.query.filter_by(email=email).first()
     if not user:
         return jsonify({"error": "User not found"}), 404
 
-    games = GameStat.query.filter_by(user_id=user.id).all()
-    games_played = len(games)
-    
-    #count games won
+    today = date.today()
+
+    # Get all today's finished GameStats
+    game_stats = GameStat.query.filter_by(user_id=user.id, date=today).order_by(GameStat.id.asc()).all()
+
+    sessions_today = GameSession.query.filter_by(user_id=user.id, date=today).all()
+    games_played = len(sessions_today)
     wins = 0
-    for game in games:
-        if game.won:
-            wins += 1
-
-    # sort games by date or ID (you already do this)
-    games_sorted = sorted(games, key=lambda g: g.id)
-
-    # Calculate max streak
+    current_streak = 0
     max_streak = 0
     temp_streak = 0
-    for game in games_sorted:
+
+    for game in game_stats:
         if game.won:
+            wins += 1
             temp_streak += 1
-            max_streak = max(max_streak, temp_streak)
+            if temp_streak > max_streak:
+                max_streak = temp_streak
         else:
             temp_streak = 0
 
-    # Calculate current streak (wins in a row from most recent game backwards)
-    current_streak = 0
-    for game in reversed(games_sorted):
-        if game.won:
-            current_streak += 1
-        else:
-            break  # streak is broken
+    # After loop, current_streak = temp_streak
+    current_streak = temp_streak
 
+    # Lives and hints
+    lives_today = DailyLife.query.filter_by(user_id=user.id, date=today).first()
+    lives_left = lives_today.lives_left if lives_today else 0
+    hints_used = lives_today.hints_used if lives_today else 0
 
-    #get lives for today
-    today = date.today()
-    lives_left = 0
-    lives = DailyLife.query.filter_by(user_id=user.id, date=today).first()
-    #if row for lives exists today we assign number of lives left
-    if lives:
-        lives_left = lives.lives_left
+    # Today's latest word
+    today_session = GameSession.query.filter_by(user_id=user.id, date=today).order_by(GameSession.id.desc()).first()
+    today_word = today_session.word.word if today_session and today_session.word else None
 
-    #get hints used for today
-    if lives:
-        hints_used = lives.hints_used
-    else:
-        hints_used = 0
-
-    # get today's chosen word from this user's game session
-    today_word = None
-    #game_session = GameSession.query.filter_by(user_id=user.id, date=today).first()
-    game_session = GameSession.query.filter_by(user_id=user.id, date=today).order_by(GameSession.id.desc()).first()
-
-    if game_session and game_session.word:
-        today_word = game_session.word.word
-
-    # build today's hint from guesses (if session exists)
+    # Today's hint
     hint = None
-    if game_session:
-        solution = game_session.word.word.lower()
-        guesses = Guess.query.filter_by(game_session_id=game_session.id).all()
-
+    if today_session:
+        solution = today_session.word.word.lower()
+        guesses = Guess.query.filter_by(game_session_id=today_session.id).all()
         if guesses:
-            revealed = []
-            for i in range(len(solution)):
-                revealed.append("_")
-
+            revealed = ["_"] * len(solution)
             for guess in guesses:
                 guess_word = guess.guess.lower()
                 for i in range(len(solution)):
                     if i < len(guess_word) and guess_word[i] == solution[i]:
                         revealed[i] = solution[i]
-
             hint = " ".join(revealed)
 
+    # Today's attempts
     attempts = 0
-    if game_session:
-        attempts = Guess.query.filter_by(game_session_id=game_session.id).count()
+    if today_session:
+        attempts = Guess.query.filter_by(game_session_id=today_session.id).count()
 
     return jsonify({
         "games_played": games_played,
@@ -127,92 +102,9 @@ def stats(email):
         "hints_used": hints_used,
         "today_word": today_word,
         "hint": hint,
-        "attempts": attempts,
+        "attempts": attempts
     })
-'''
-@routes.route("/api/stats/<email>")
-def stats(email):
-    user = User.query.filter_by(email=email).first()
-    if not user:
-        return jsonify({"error": "User not found"}), 404
 
-    games = GameStat.query.filter_by(user_id=user.id).all()
-    games_played = len(games)
-
-    # Count total wins
-    wins = 0
-    for game in games:
-        if game.won:
-            wins += 1
-
-    # Sort by ID to determine streaks
-    games_sorted = sorted(games, key=lambda g: g.id)
-
-    # Max streak
-    max_streak = 0
-    temp_streak = 0
-    for game in games_sorted:
-        if game.won:
-            temp_streak += 1
-            max_streak = max(max_streak, temp_streak)
-        else:
-            temp_streak = 0
-
-    # Current streak
-    current_streak = 0
-    for game in reversed(games_sorted):
-        if game.won:
-            current_streak += 1
-        else:
-            break
-
-    today = date.today()
-    lives_left = 0
-    hints_used = 0
-    attempts = 0
-    today_word = None
-    hint = None
-
-    # ✅ Find most recent session (even if multiple exist for today)
-    game_session = GameSession.query.filter_by(user_id=user.id, date=today).order_by(GameSession.id.desc()).first()
-
-    if game_session:
-        # ✅ Lives from DailyLife
-        lives = DailyLife.query.filter_by(user_id=user.id, date=today).first()
-        if lives:
-            lives_left = lives.lives_left
-            hints_used = lives.hints_used
-
-        # ✅ Correct word
-        if game_session.word:
-            today_word = game_session.word.word
-            solution = today_word.lower()
-
-            # ✅ Guesses tied to this session only
-            guesses = Guess.query.filter_by(game_session_id=game_session.id).all()
-            attempts = len(guesses)
-
-            # Build hint
-            if guesses:
-                revealed = ["_"] * len(solution)
-                for guess in guesses:
-                    guess_word = guess.guess.lower()
-                    for i in range(len(solution)):
-                        if i < len(guess_word) and guess_word[i] == solution[i]:
-                            revealed[i] = solution[i]
-                hint = " ".join(revealed)
-
-    return jsonify({
-        "games_played": games_played,
-        "wins": wins,
-        "current_streak": current_streak,
-        "max_streak": max_streak,
-        "lives_left": lives_left,
-        "hints_used": hints_used,
-        "today_word": today_word,
-        "hint": hint,
-        "attempts": attempts,
-    })
 
 #check validity of email
 def is_valid_email(email):
@@ -499,6 +391,7 @@ def start_game():
     })
 
 
+# --- Corrected /api/guess route ---
 @routes.route("/api/guess", methods=["POST"])
 def guess():
     email = session.get("email")
@@ -517,14 +410,12 @@ def guess():
 
     today = date.today()
 
-    # find the user's active GameSession for today
+    # Find active GameSession
     game_session = GameSession.query.filter_by(user_id=user.id, date=today, active=True).first()
-
     if not game_session:
         return jsonify({"error": "No active game session found for today"}), 403
 
-    word = game_session.word  # access the Word object via the session
-
+    word = game_session.word
     if not word:
         return jsonify({"error": "Game word not found"}), 404
 
@@ -532,7 +423,7 @@ def guess():
     guess_clean = guessed_word.strip().lower()
     solution = word.word.lower()
 
-    # Check if guess exists in word table
+    # Check if guess exists in words table
     valid_word = Word.query.filter_by(word=guess_clean).first()
     if not valid_word:
         return jsonify({"error": "Invalid guess: word not in dictionary"}), 400
@@ -549,14 +440,13 @@ def guess():
     )
     db.session.add(new_guess)
 
-    # Feedback logic (Wordle-style)
+    # Feedback logic (green/yellow/gray)
     feedback = []
     solution_letter_count = {}
 
     for letter in solution:
         solution_letter_count[letter] = solution_letter_count.get(letter, 0) + 1
 
-    # First pass: green letters
     for i in range(len(guess_clean)):
         if guess_clean[i] == solution[i]:
             feedback.append("green")
@@ -564,7 +454,6 @@ def guess():
         else:
             feedback.append(None)
 
-    # Second pass: yellow or gray
     for i in range(len(guess_clean)):
         if feedback[i] is None:
             letter = guess_clean[i]
@@ -574,17 +463,15 @@ def guess():
             else:
                 feedback[i] = "gray"
 
-    # Update game stats
-    game_stat = GameStat.query.filter_by(user_id=user.id, date=today).first()
+    # Update attempts (ONLY attempts!)
+    game_stat = GameStat.query.filter_by(user_id=user.id, date=today).order_by(GameStat.id.desc()).first()
     if not game_stat:
         game_stat = GameStat(user_id=user.id, date=today, attempts=0)
         db.session.add(game_stat)
 
     game_stat.attempts += 1
 
-    if correct:
-        game_stat.won = True
-        game_session.active = False
+    # Do NOT mark won here! Only end_game will handle win/loss!
 
     db.session.commit()
 
