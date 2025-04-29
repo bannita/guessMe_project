@@ -26,18 +26,6 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)  #instead of creating a new SQLAlchemy(app)
 
-#@app.route("/")
-#def home():
-#   return "<h1>hi kitty ^-^</h1>"
-
-#@app.route("/")
-#def serve_home():
-#    return app.send_static_file("index.html")
-
-#@app.route("/game")
-#def serve_game():
-#   return app.send_static_file("game.html")
-
 @app.route("/")
 def serve_home():
     email = session.get("email")

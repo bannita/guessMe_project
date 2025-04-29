@@ -1,4 +1,4 @@
-#Defines database tables: User, Word, GameStat, DailyLife, etc.
+# defines database tables: User, Word, GameStat, DailyLife, Gamesession, Guess
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, date
 from sqlalchemy import ForeignKey
@@ -6,16 +6,20 @@ from sqlalchemy.orm import relationship
 
 db = SQLAlchemy()
 
-#user's table
+# User table stores account information for each player:
+# their username, email, hashed password, and signup date
+# connected to other tables: GameSession, GameStat, DailyLife and Guess
 class User(db.Model):
     __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    password = db.Column(db.String(300), nullable=False)  # hashed later
+    password = db.Column(db.String(300), nullable=False)  
     date_joined = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
+# Word table stores all valid words for the game
+# it marks if a word can be used as a daily solution and tracks if it has been used globally
 class Word(db.Model):
     __tablename__ = 'words'
 
@@ -24,6 +28,9 @@ class Word(db.Model):
     is_solution = db.Column(db.Boolean, nullable=False, default=False)
     used = db.Column(db.Boolean, nullable=False, default=False)
 
+# GameStat table records result of each day's game for user"
+# whether the user wonn and how many attempts they used
+# connected to  User table
 class GameStat(db.Model):
     __tablename__ = 'game_stats'
 
@@ -35,6 +42,9 @@ class GameStat(db.Model):
 
     user = relationship("User", backref="game_stats")
 
+# DailyLife table tracks number of lives and hintts user has each day
+# allows limiting daily play and monitors hint usage
+# connected to the User table
 class DailyLife(db.Model):
     __tablename__ = 'daily_life'
 
@@ -46,6 +56,9 @@ class DailyLife(db.Model):
 
     user = relationship("User", backref="daily_life")
 
+# GameSession table tracks an individual game instance for a user:
+# records which word was assigned, if  session is still active, and when it started
+# connected too the User and Word tables
 class GameSession(db.Model):
     __tablename__ = 'game_sessions'
 
@@ -58,6 +71,9 @@ class GameSession(db.Model):
     user = db.relationship("User", backref="game_sessions")
     word = db.relationship("Word")
 
+# Guess table records each guess a user makes during game session:
+# guessed word, if it was correct, and date of guess
+# Connected to User and GameSession tables
 class Guess(db.Model):
     __tablename__ = 'guesses'
 

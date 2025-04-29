@@ -5,107 +5,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import date
 
 routes = Blueprint("routes", __name__)
-
-#get random unused work for game
-@routes.route("/api/random-word")
-def random_word():
-    unused_words = Word.query.filter_by(is_solution=True, used=False).all()
-    if not unused_words:
-        return jsonify({"error": "No unused words available"}), 404
-    chosen = random.choice(unused_words)
-    return jsonify({"word": chosen.word})
-
-#mark word as used
-@routes.route("/api/use-word/<word>")
-def use_word(word):
-    w = Word.query.filter_by(word=word).first()
-    if not w:
-        return jsonify({"error": "Word not found"}), 404
-    w.used = True
-    db.session.commit()
-    return jsonify({"message": f"Word '{word}' marked as used."})
-
-#check validity of word
-@routes.route("/api/check-word/<guess>")
-def check_word(guess):
-    w = Word.query.filter_by(word=guess.lower()).first()
-    return jsonify({
-        "word": guess,
-        "valid": bool(w),
-        "is_solution": w.is_solution if w else False
-    })
-
-@routes.route("/api/stats/<email>")
-def stats(email):
-    user = User.query.filter_by(email=email).first()
-    if not user:
-        return jsonify({"error": "User not found"}), 404
-
-    today = date.today()
-
-    # Get all today's finished GameStats
-    game_stats = GameStat.query.filter_by(user_id=user.id, date=today).order_by(GameStat.id.asc()).all()
-
-    sessions_today = GameSession.query.filter_by(user_id=user.id, date=today).all()
-    games_played = len(sessions_today)
-    wins = 0
-    current_streak = 0
-    max_streak = 0
-    temp_streak = 0
-
-    for game in game_stats:
-        if game.won:
-            wins += 1
-            temp_streak += 1
-            if temp_streak > max_streak:
-                max_streak = temp_streak
-        else:
-            temp_streak = 0
-
-    # After loop, current_streak = temp_streak
-    current_streak = temp_streak
-
-    # Lives and hints
-    lives_today = DailyLife.query.filter_by(user_id=user.id, date=today).first()
-    lives_left = lives_today.lives_left if lives_today else 0
-    hints_used = lives_today.hints_used if lives_today else 0
-
-    # Today's latest word
-    today_session = GameSession.query.filter_by(user_id=user.id, date=today).order_by(GameSession.id.desc()).first()
-    today_word = today_session.word.word if today_session and today_session.word else None
-
-    # Today's hint
-    hint = None
-    if today_session:
-        solution = today_session.word.word.lower()
-        guesses = Guess.query.filter_by(game_session_id=today_session.id).all()
-        if guesses:
-            revealed = ["_"] * len(solution)
-            for guess in guesses:
-                guess_word = guess.guess.lower()
-                for i in range(len(solution)):
-                    if i < len(guess_word) and guess_word[i] == solution[i]:
-                        revealed[i] = solution[i]
-            hint = " ".join(revealed)
-
-    # Today's attempts
-    attempts = 0
-    if today_session:
-        attempts = Guess.query.filter_by(game_session_id=today_session.id).count()
-
-    return jsonify({
-        "games_played": games_played,
-        "wins": wins,
-        "current_streak": current_streak,
-        "max_streak": max_streak,
-        "lives_left": lives_left,
-        "hints_used": hints_used,
-        "today_word": today_word,
-        "hint": hint,
-        "attempts": attempts
-    })
-
-
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ AUTHENTICATION ROUTES ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #check validity of email
 def is_valid_email(email):
     is_valid = False
@@ -210,15 +111,15 @@ def delete_account():
     if not user:
         return jsonify({"error": "User not found"}), 404
 
-    #Delete guesses first (they depend on game_sessions)
+    #delete guesses first (they depend on game_sessions)
     Guess.query.filter_by(user_id=user.id).delete()
     
-    # Now safe to delete sessions and other stats
+    #delete sessions and other stats
     GameStat.query.filter_by(user_id=user.id).delete()
     GameSession.query.filter_by(user_id=user.id).delete()
     DailyLife.query.filter_by(user_id=user.id).delete()
 
-    # Finally, delete the user
+    #finally delete the user
     db.session.delete(user)
     db.session.commit()
 
@@ -226,105 +127,9 @@ def delete_account():
 
     return jsonify({"message": "Your account has been deleted."}), 200
 
-#route for giving lives
-@routes.route("/api/lives/<email>")
-def get_lives(email):
-    user = User.query.filter_by(email=email).first()
-    if not user:
-        return jsonify({"error": "User not found"}), 404
 
-    today = date.today()
-
-    #check if lives already recorded for today
-    lives = DailyLife.query.filter_by(user_id=user.id, date=today).first()
-
-    if not lives:
-        #create new entry for today
-        lives = DailyLife(user_id=user.id, lives_left=5, date=today)
-        db.session.add(lives)
-        db.session.commit()
-
-    return jsonify({
-        "date": today.strftime("%Y-%m-%d"),
-        "lives_left": lives.lives_left
-    })
-
-#route for substracting live
-@routes.route("/api/use-life", methods=["POST"])
-def use_life():
-    email = session.get("email")
-    if not email:
-        return jsonify({"error": "Not logged in"}), 401
-
-    user = User.query.filter_by(email=email).first()
-    if not user:
-        return jsonify({"error": "User not found"}), 404
-
-    today = date.today()
-    lives = DailyLife.query.filter_by(user_id=user.id, date=today).first()
-
-    #if no record exists for today create one with 5 lives
-    if not lives:
-        lives = DailyLife(user_id=user.id, lives_left=5, date = today)
-        db.session.add(lives)
-        db.session.commit()
-
-    if lives.lives_left <= 0:
-        return jsonify({"error": "No lives left for today"}), 403
-
-    #subtract one life
-    lives.lives_left -= 1
-    db.session.commit()
-
-    return jsonify({
-        "message": "Life used",
-        "lives_left": lives.lives_left
-    })
-
-#end_game route
-@routes.route("/api/end-game", methods=["POST"])
-def end_game():
-    email = session.get("email")
-    if not email:
-        return jsonify({"error": "Not logged in"}), 401
-
-    data = request.get_json()
-    won = data.get("won")
-    attempts = data.get("attempts")
-
-    if won is None or attempts is None:
-        return jsonify({"error": "Missing game data"}), 400
-
-    user = User.query.filter_by(email=email).first()
-    if not user:
-        return jsonify({"error": "User not found"}), 404
-
-    today = date.today()
-
-    # ✅ Always create a new GameStat
-    new_game = GameStat(
-        user_id=user.id,
-        date=today,
-        won=bool(won),
-        attempts=int(attempts)
-    )
-    db.session.add(new_game)
-
-    # ✅ Close the current session
-    session_to_close = GameSession.query.filter_by(user_id=user.id, date=today, active=True).first()
-    if session_to_close:
-        session_to_close.active = False
-
-    # ✅ Subtract a life
-    lives = DailyLife.query.filter_by(user_id=user.id, date=today).first()
-    if lives and lives.lives_left > 0:
-        lives.lives_left -= 1
-
-    db.session.commit()
-    return jsonify({"message": "Game result recorded"}), 201
-
-
-
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ GAME ROUTES ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #start the game
 @routes.route("/api/start-game", methods=["POST"])
 def start_game():
@@ -390,8 +195,7 @@ def start_game():
         "lives_left": lives.lives_left
     })
 
-
-# --- Corrected /api/guess route ---
+#guess route
 @routes.route("/api/guess", methods=["POST"])
 def guess():
     email = session.get("email")
@@ -410,7 +214,7 @@ def guess():
 
     today = date.today()
 
-    # Find active GameSession
+    #find active GameSession
     game_session = GameSession.query.filter_by(user_id=user.id, date=today, active=True).first()
     if not game_session:
         return jsonify({"error": "No active game session found for today"}), 403
@@ -419,18 +223,18 @@ def guess():
     if not word:
         return jsonify({"error": "Game word not found"}), 404
 
-    # Clean and compare
+    #clean and compare
     guess_clean = guessed_word.strip().lower()
     solution = word.word.lower()
 
-    # Check if guess exists in words table
+    #check if guess exists in words table
     valid_word = Word.query.filter_by(word=guess_clean).first()
     if not valid_word:
         return jsonify({"error": "Invalid guess: word not in dictionary"}), 400
 
     correct = guess_clean == solution
 
-    # Save the guess
+    #save guess
     new_guess = Guess(
         user_id=user.id,
         game_session_id=game_session.id,
@@ -440,7 +244,7 @@ def guess():
     )
     db.session.add(new_guess)
 
-    # Feedback logic (green/yellow/gray)
+    #feedback logic (green/yellow/gray)
     feedback = []
     solution_letter_count = {}
 
@@ -463,15 +267,13 @@ def guess():
             else:
                 feedback[i] = "gray"
 
-    # Update attempts (ONLY attempts!)
+    #update attempts
     game_stat = GameStat.query.filter_by(user_id=user.id, date=today).order_by(GameStat.id.desc()).first()
     if not game_stat:
         game_stat = GameStat(user_id=user.id, date=today, attempts=0)
         db.session.add(game_stat)
 
     game_stat.attempts += 1
-
-    # Do NOT mark won here! Only end_game will handle win/loss!
 
     db.session.commit()
 
@@ -483,6 +285,106 @@ def guess():
         "feedback": feedback
     })
 
+
+#end_game route
+@routes.route("/api/end-game", methods=["POST"])
+def end_game():
+    email = session.get("email")
+    if not email:
+        return jsonify({"error": "Not logged in"}), 401
+
+    data = request.get_json()
+    won = data.get("won")
+    attempts = data.get("attempts")
+
+    if won is None or attempts is None:
+        return jsonify({"error": "Missing game data"}), 400
+
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    today = date.today()
+
+    #Always create a new GameStat
+    new_game = GameStat(
+        user_id=user.id,
+        date=today,
+        won=bool(won),
+        attempts=int(attempts)
+    )
+    db.session.add(new_game)
+
+    #Close the current session
+    session_to_close = GameSession.query.filter_by(user_id=user.id, date=today, active=True).first()
+    if session_to_close:
+        session_to_close.active = False
+
+    #Subtract a life
+    lives = DailyLife.query.filter_by(user_id=user.id, date=today).first()
+    if lives and lives.lives_left > 0:
+        lives.lives_left -= 1
+
+    db.session.commit()
+    return jsonify({"message": "Game result recorded"}), 201
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ LIVES AND HINTS ROUTES ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#route for giving lives
+@routes.route("/api/lives/<email>")
+def get_lives(email):
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    today = date.today()
+
+    #check if lives already recorded for today
+    lives = DailyLife.query.filter_by(user_id=user.id, date=today).first()
+
+    if not lives:
+        #create new entry for today
+        lives = DailyLife(user_id=user.id, lives_left=5, date=today)
+        db.session.add(lives)
+        db.session.commit()
+
+    return jsonify({
+        "date": today.strftime("%Y-%m-%d"),
+        "lives_left": lives.lives_left
+    })
+
+#route for substracting live
+@routes.route("/api/use-life", methods=["POST"])
+def use_life():
+    email = session.get("email")
+    if not email:
+        return jsonify({"error": "Not logged in"}), 401
+
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    today = date.today()
+    lives = DailyLife.query.filter_by(user_id=user.id, date=today).first()
+
+    #if no record exists for today create one with 5 lives
+    if not lives:
+        lives = DailyLife(user_id=user.id, lives_left=5, date = today)
+        db.session.add(lives)
+        db.session.commit()
+
+    if lives.lives_left <= 0:
+        return jsonify({"error": "No lives left for today"}), 403
+
+    #subtract one life
+    lives.lives_left -= 1
+    db.session.commit()
+
+    return jsonify({
+        "message": "Life used",
+        "lives_left": lives.lives_left
+    })
 
 @routes.route("/api/use-hint", methods=["POST"])
 def use_hint():
@@ -555,15 +457,89 @@ def use_hint():
         "hints_used": lives.hints_used
     })
 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ STATS ROUTES ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+@routes.route("/api/stats/<email>")
+def stats(email):
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    today = date.today()
+
+    # Get all today's finished GameStats
+    game_stats = GameStat.query.filter_by(user_id=user.id, date=today).order_by(GameStat.id.asc()).all()
+
+    sessions_today = GameSession.query.filter_by(user_id=user.id, date=today).all()
+    games_played = len(sessions_today)
+    wins = 0
+    current_streak = 0
+    max_streak = 0
+    temp_streak = 0
+
+    for game in game_stats:
+        if game.won:
+            wins += 1
+            temp_streak += 1
+            if temp_streak > max_streak:
+                max_streak = temp_streak
+        else:
+            temp_streak = 0
+
+    # After loop, current_streak = temp_streak
+    current_streak = temp_streak
+
+    # Lives and hints
+    lives_today = DailyLife.query.filter_by(user_id=user.id, date=today).first()
+    lives_left = lives_today.lives_left if lives_today else 0
+    hints_used = lives_today.hints_used if lives_today else 0
+
+    # Today's latest word
+    today_session = GameSession.query.filter_by(user_id=user.id, date=today).order_by(GameSession.id.desc()).first()
+    today_word = today_session.word.word if today_session and today_session.word else None
+
+    # Today's hint
+    hint = None
+    if today_session:
+        solution = today_session.word.word.lower()
+        guesses = Guess.query.filter_by(game_session_id=today_session.id).all()
+        if guesses:
+            revealed = ["_"] * len(solution)
+            for guess in guesses:
+                guess_word = guess.guess.lower()
+                for i in range(len(solution)):
+                    if i < len(guess_word) and guess_word[i] == solution[i]:
+                        revealed[i] = solution[i]
+            hint = " ".join(revealed)
+
+    # Today's attempts
+    attempts = 0
+    if today_session:
+        attempts = Guess.query.filter_by(game_session_id=today_session.id).count()
+
+    return jsonify({
+        "games_played": games_played,
+        "wins": wins,
+        "current_streak": current_streak,
+        "max_streak": max_streak,
+        "lives_left": lives_left,
+        "hints_used": hints_used,
+        "today_word": today_word,
+        "hint": hint,
+        "attempts": attempts
+    })
+
 @routes.route("/api/stats/me")
 def stats_me():
     email = session.get("email")
     if not email:
         return jsonify({"error": "Not logged in"}), 401
 
-    return stats(email)  # use your existing stats function
+    return stats(email) #use existing stats function
 
-
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ADMIN ROUTES ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 @routes.route("/api/admin/users", methods=["GET"])
 def admin_get_users():
     email = session.get("email")
