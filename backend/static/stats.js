@@ -31,6 +31,8 @@ window.addEventListener("DOMContentLoaded", async () => {
     // Fill in stats
     document.getElementById("gamesPlayed").textContent = data.games_played;
     document.getElementById("wins").textContent = data.wins;
+    const winRate = Math.floor(data.win_percentage); //get only the integer part
+    document.getElementById("winPercentage").textContent = `${winRate}%`;
     document.getElementById("currentStreak").textContent = data.current_streak;
     document.getElementById("maxStreak").textContent = data.max_streak;
     document.getElementById("livesLeft").textContent = data.lives_left;

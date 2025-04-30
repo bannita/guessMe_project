@@ -32,10 +32,7 @@ def signup():
     if not is_valid_email(email):
         return jsonify({"error": "Invalid email format"}), 400
 
-    existing_user = User.query.filter(
-        (User.username == username) | (User.email == email)
-    ).first()
-
+    existing_user = User.query.filter( (User.username == username) | (User.email == email)).first()
     if existing_user:
         return jsonify({"error": "Username or email already in use"}), 409
 
@@ -111,10 +108,10 @@ def delete_account():
     if not user:
         return jsonify({"error": "User not found"}), 404
 
-    #delete guesses first (they depend on game_sessions)
+    #deletes guesses first (they depend on game_sessions)
     Guess.query.filter_by(user_id=user.id).delete()
     
-    #delete sessions and other stats
+    #deletse sessions and other stats
     GameStat.query.filter_by(user_id=user.id).delete()
     GameSession.query.filter_by(user_id=user.id).delete()
     DailyLife.query.filter_by(user_id=user.id).delete()
@@ -267,26 +264,15 @@ def guess():
             else:
                 feedback[i] = "gray"
 
-    #update attempts
-    game_stat = GameStat.query.filter_by(user_id=user.id, date=today).order_by(GameStat.id.desc()).first()
-    if not game_stat:
-        game_stat = GameStat(user_id=user.id, date=today, attempts=0)
-        db.session.add(game_stat)
-
-    game_stat.attempts += 1
-
     db.session.commit()
 
     return jsonify({
         "correct": correct,
         "your_guess": guessed_word,
         "solution_word": word.word,
-        "attempts": game_stat.attempts,
         "feedback": feedback
     })
 
-
-#end_game route
 @routes.route("/api/end-game", methods=["POST"])
 def end_game():
     email = session.get("email")
@@ -295,10 +281,9 @@ def end_game():
 
     data = request.get_json()
     won = data.get("won")
-    attempts = data.get("attempts")
 
-    if won is None or attempts is None:
-        return jsonify({"error": "Missing game data"}), 400
+    if won is None:
+        return jsonify({"error": "Missing game result (won)"}), 400
 
     user = User.query.filter_by(email=email).first()
     if not user:
@@ -306,27 +291,34 @@ def end_game():
 
     today = date.today()
 
-    #Always create a new GameStat
-    new_game = GameStat(
+    #find active game session
+    session_to_close = GameSession.query.filter_by(user_id=user.id, date=today, active=True).first()
+    if not session_to_close:
+        return jsonify({"error": "No active game session"}), 400
+
+    #count guesses made in this session
+    attempts = Guess.query.filter_by(game_session_id=session_to_close.id).count()
+
+    #create a new GameStat always
+    new_stat = GameStat(
         user_id=user.id,
         date=today,
         won=bool(won),
-        attempts=int(attempts)
+        attempts=attempts
     )
-    db.session.add(new_game)
+    db.session.add(new_stat)
 
-    #Close the current session
-    session_to_close = GameSession.query.filter_by(user_id=user.id, date=today, active=True).first()
-    if session_to_close:
-        session_to_close.active = False
+    #close the session
+    session_to_close.active = False
 
-    #Subtract a life
+    #subtract a life
     lives = DailyLife.query.filter_by(user_id=user.id, date=today).first()
     if lives and lives.lives_left > 0:
         lives.lives_left -= 1
 
     db.session.commit()
     return jsonify({"message": "Game result recorded"}), 201
+
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ LIVES AND HINTS ROUTES ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -471,8 +463,9 @@ def stats(email):
     # Get all today's finished GameStats
     game_stats = GameStat.query.filter_by(user_id=user.id, date=today).order_by(GameStat.id.asc()).all()
 
-    sessions_today = GameSession.query.filter_by(user_id=user.id, date=today).all()
-    games_played = len(sessions_today)
+    all_game_stats = GameStat.query.filter_by(user_id=user.id).order_by(GameStat.id.asc()).all()
+    games_played = len(all_game_stats)
+
     wins = 0
     current_streak = 0
     max_streak = 0
@@ -518,6 +511,11 @@ def stats(email):
     if today_session:
         attempts = Guess.query.filter_by(game_session_id=today_session.id).count()
 
+    if games_played > 0:
+        win_percentage = wins/games_played*100
+    else:
+        win_percentage = 0
+
     return jsonify({
         "games_played": games_played,
         "wins": wins,
@@ -527,7 +525,8 @@ def stats(email):
         "hints_used": hints_used,
         "today_word": today_word,
         "hint": hint,
-        "attempts": attempts
+        "attempts": attempts,
+        "win_percentage": win_percentage
     })
 
 @routes.route("/api/stats/me")

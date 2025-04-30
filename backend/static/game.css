@@ -1,9 +1,21 @@
 body {
   font-family: 'Segoe UI', sans-serif;
-  background-color: #f9f9f9;
+  background-color: #f0f0f0;
   text-align: center;
-  padding: 20px;
+  padding: 50px;
   margin: 0;
+}
+
+h1 {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  margin-top: 4rem;
+}
+
+p {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  margin-top: 2rem;
 }
 
 .container {
@@ -29,26 +41,26 @@ button {
 .grid {
   display: grid;
   grid-template-columns: repeat(5, 60px);
-  gap: 8px;
+  gap: 9px;
   justify-content: center;
   margin-bottom: 30px;
 }
 
-.tile {
-  width: 60px;
-  height: 60px;
-  border: 2px solid #ccc;
-  font-size: 32px;
-  font-weight: bold;
-  line-height: 60px;
-  text-transform: uppercase;
-  background-color: white;
-  transition: 0.2s ease;
-}
+  .tile {
+    width: 60px;
+    height: 60px;
+    background-color: white;
+    font-size: 32px;
+    font-weight: bold;
+    line-height: 60px;
+    text-transform: uppercase;
+    border: none; /* removes outline */
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3); /* float effect */
+    transition: 0.2s ease;
+  }
 
-.tile.filled {
-  border-color: #999;
-}
+
 
 /* Feedback colors */
 .tile.green {
@@ -78,11 +90,11 @@ button {
 }
 
 .message.win {
-  color: #2e7d32; /* green */
+  color: #2e7d32;
 }
 
 .message.lose {
-  color: #c62828; /* red */
+  color: #c62828;
 }
 
 .hint {
@@ -106,6 +118,36 @@ button {
 
 #logoutBtn:hover {
   background-color: #c62828;
+}
+
+#hintBtn {
+  margin-left: 10px;
+  background-color: #facc15;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+#hintBtn:hover {
+  background-color: #c19e10;
+}
+
+#profileBtn {
+  margin-left: 10px;
+  background-color: #15a6fa;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+#profileBtn:hover {
+  background-color: #147bb7;
 }
 
 .hidden {
@@ -147,4 +189,40 @@ button {
 
 #goToProfileBtn:hover {
   background-color: #1565c0;
+}
+
+#letter-tracker {
+  display: grid;
+  grid-template-columns: repeat(13, 30px);
+  gap: 6px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.letter-box {
+  width: 30px;
+  height: 40px;
+  background-color: #eee;
+  font-size: 18px;
+  font-weight: bold;
+  line-height: 40px;
+  text-align: center;
+  text-transform: uppercase;
+  border-radius: 4px;
+  transition: 0.2s ease;
+}
+
+.letter-box.green {
+  background-color: #6aaa64;
+  color: white;
+}
+
+.letter-box.yellow {
+  background-color: #c9b458;
+  color: white;
+}
+
+.letter-box.gray {
+  background-color: #787c7e;
+  color: white;
 }

@@ -11,6 +11,8 @@ const grid = document.getElementById("guessGrid");
 const message = document.getElementById("message");
 const livesDisplay = document.getElementById("lives");
 const hintBtn = document.getElementById("hintBtn");
+const tracker = document.getElementById("letter-tracker");
+const alphabet = "abcdefghijklmnopqrstuvwxyz";
 
 // === Start Game ===
 async function startGame() {
@@ -133,6 +135,29 @@ async function submitGuess() {
 
     if (res.ok) {
       updateTileFeedback(data.feedback);
+
+      data.feedback.forEach((status, index) => {
+        const letter = guessWord[index].toLowerCase();
+        const box = document.getElementById(`letter-${letter}`);
+      
+        if (!box) return;
+      
+        if (status === "green") {
+          box.classList.remove("gray", "yellow");
+          box.classList.add("green");
+        } else if (status === "yellow" && !box.classList.contains("green")) {
+          box.classList.remove("gray");
+          box.classList.add("yellow");
+        } else if (
+          status === "gray" &&
+          !box.classList.contains("green") &&
+          !box.classList.contains("yellow")
+        ) {
+          box.classList.add("gray");
+        }
+      });
+
+      
       currentRow++;
       currentCol = 0;
     
@@ -256,3 +281,10 @@ document.getElementById("goToStatsBtn").addEventListener("click", () => {
   window.location.href = "/stats";
 });
 
+for (let letter of alphabet) {
+  const box = document.createElement("div");
+  box.classList.add("letter-box");
+  box.id = `letter-${letter}`;
+  box.textContent = letter;
+  tracker.appendChild(box);
+}
