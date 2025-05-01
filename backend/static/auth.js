@@ -1,9 +1,9 @@
-//Sends login/signup data to backend (/login, /signup).
+//sends login/signup data to backend (/login, /signup).
 
-// Base URL of the Flask backend
+//base URL of the Flask backend
 const BASE_URL = "http://127.0.0.1:5000";
 
-// Login function
+//login function
 async function login() {
   const email = document.getElementById("login-email").value;
   const password = document.getElementById("login-password").value;
@@ -20,7 +20,7 @@ async function login() {
     const data = await response.json();
 
     if (response.ok) {
-      // ✅ redirect to game page after session sets
+      //redirect to game page after session sets
       setTimeout(() => {
         window.location.href = "/game";
       }, 300);
@@ -32,7 +32,7 @@ async function login() {
   }
 }
 
-// Signup function
+//signup function
 async function signup() {
   const username = document.getElementById("signup-username").value;
   const email = document.getElementById("signup-email").value;
@@ -50,7 +50,7 @@ async function signup() {
     const data = await response.json();
 
     if (response.ok) {
-      console.log("✅ Signup success! Redirecting now...");
+      console.log("Signup success! Redirecting now...");
       window.location.replace("/game");
     } else {
       errorBox.innerText = data.error || "Signup failed.";
