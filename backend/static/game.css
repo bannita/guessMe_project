@@ -24,7 +24,7 @@ p {
 }
 
 header {
-  margin-bottom: 20px;
+  margin-bottom: 40px;
 }
 
 #lives {
@@ -37,7 +37,6 @@ button {
   font-size: 16px;
 }
 
-/* Grid */
 .grid {
   display: grid;
   grid-template-columns: repeat(5, 60px);
@@ -54,9 +53,9 @@ button {
     font-weight: bold;
     line-height: 60px;
     text-transform: uppercase;
-    border: none; /* removes outline */
+    border: none; 
     border-radius: 8px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3); /* float effect */
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
     transition: 0.2s ease;
   }
 

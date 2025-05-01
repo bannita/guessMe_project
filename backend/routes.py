@@ -4,6 +4,15 @@ import random
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import date
 
+# Common status codes we use(I need this comment for me to remamber status codes so everyone else can ignore it^^)
+# 200: OK (success)
+# 201: Created
+# 400: Bad request (e.g. missing fields)
+# 401: Unauthorized (not logged in)
+# 403: Forbidden (logged in but not allowed)
+# 404: Not Found (user/word/game not found)
+# 409: Conflict (duplicate signup)
+
 routes = Blueprint("routes", __name__)
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ AUTHENTICATION ROUTES ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -142,7 +151,7 @@ def start_game():
     today = date.today()
     lives = DailyLife.query.filter_by(user_id=user.id, date=today).first()
 
-    #if no lives row, give 5 lives
+    #if no lives row for today, give 5 lives
     if not lives:
         lives = DailyLife(user_id=user.id, date=today, lives_left=5)
         db.session.add(lives)
@@ -156,31 +165,29 @@ def start_game():
     db.session.commit()
 
     #get word IDs this user has already played
-    #1) get all the word IDs the user has already played in previous games
+
+    #get all the word IDs the user has already played in previous games
     played_sessions = db.session.query(GameSession.word_id).filter_by(user_id=user.id).all()
 
-    #2) convert list of tuples into list of integers
+    #convert list of tuples into list of integers
     used_word_ids = []
     for gamesession in played_sessions:
         used_word_ids.append(gamesession[0])
 
 
     #find words this user hasn't seen yet
-    available_words = Word.query.filter(
-        Word.is_solution == True,
-        ~Word.id.in_(used_word_ids)
-    ).all()
+    available_words = Word.query.filter(Word.is_solution == True, ~Word.id.in_(used_word_ids)).all()
 
     if not available_words:
         return jsonify({"error": "No more words available for you!"}), 404
 
-    #pick one random word
+    #pick one random word from available ones
     chosen_word = random.choice(available_words)
 
-   # Mark all previous sessions as inactive
+    #mark all previous sessions for the uer inactive
     GameSession.query.filter_by(user_id=user.id, date=today).update({"active": False})
 
-    # Always create a new session when starting a game
+    #always create a new session when starting a game
     new_session = GameSession(user_id=user.id, word_id=chosen_word.id, date=today)
     db.session.add(new_session)
 

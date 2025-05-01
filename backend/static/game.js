@@ -1,4 +1,4 @@
-//Sends/receives guesses, shows hints, updates lives.
+//Sends/receives guesses, shows hints, updates lives...
 const BASE_URL = "http://127.0.0.1:5000";
 const NUM_ROWS = 6;
 const WORD_LENGTH = 5;
@@ -14,7 +14,7 @@ const hintBtn = document.getElementById("hintBtn");
 const tracker = document.getElementById("letter-tracker");
 const alphabet = "abcdefghijklmnopqrstuvwxyz";
 
-// === Start Game ===
+//start Game
 async function startGame() {
   try {
     const res = await fetch(`${BASE_URL}/api/start-game`, {
@@ -33,7 +33,7 @@ async function startGame() {
       livesDisplay.textContent = `Lives: ${data.lives_left}`;
       console.log("Game started:", data.word);
 
-      // ✅ If lives are already 0 (shouldn’t happen here, but safe check)
+      //if lives are already 0 show noLivesContainer(for safety)
       if (data.lives_left <= 0) {
         document.getElementById("noLivesContainer").classList.remove("hidden");
         document.getElementById("guessGrid").style.display = "none";
@@ -42,7 +42,7 @@ async function startGame() {
       }
 
     } else {
-      // ✅ Error case — check if response contains lives_left
+      //if lives are already 0 show noLivesContainer
       if (data.lives_left !== undefined) {
         livesDisplay.textContent = `Lives: ${data.lives_left}`;
 
@@ -50,6 +50,7 @@ async function startGame() {
           document.getElementById("noLivesContainer").classList.remove("hidden");
           document.getElementById("guessGrid").style.display = "none";
           document.getElementById("keyboard")?.remove();
+          document.getElementById("letter-tracker").style.display = "none";
           hintBtn.style.display = "none";
         }
       }
@@ -65,7 +66,7 @@ startGame();
 
 
 
-// === Create Grid ===
+//creates 5x6 grid for wordle
 function createGrid() {
   for (let row = 0; row < NUM_ROWS; row++) {
     for (let col = 0; col < WORD_LENGTH; col++) {
@@ -78,7 +79,7 @@ function createGrid() {
 }
 createGrid();
 
-// === Listen for real keyboard input ===
+//listens for real keyboard input
 document.addEventListener("keydown", (e) => {
   const key = e.key;
 
@@ -91,7 +92,7 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-// === Letter handling ===
+//letter handling
 function addLetter(letter) {
   if (currentCol < WORD_LENGTH) {
     guesses[currentRow][currentCol] = letter;
@@ -112,7 +113,7 @@ function deleteLetter() {
   }
 }
 
-// === Submit Guess ===
+//submit a new guess
 async function submitGuess() {
   const guessWord = guesses[currentRow].join("");
 
@@ -188,7 +189,7 @@ async function submitGuess() {
   }
 }
 
-// === Update Feedback Colors ===
+//update feedback colors
 function updateTileFeedback(feedback) {
   for (let i = 0; i < WORD_LENGTH; i++) {
     const tile = document.getElementById(`tile-${currentRow}-${i}`);
@@ -196,7 +197,7 @@ function updateTileFeedback(feedback) {
   }
 }
 
-// === Use Hint ===
+//use hint
 hintBtn.addEventListener("click", async () => {
   try {
     const res = await fetch(`${BASE_URL}/api/use-hint`, {
@@ -219,7 +220,7 @@ hintBtn.addEventListener("click", async () => {
       }
       document.getElementById("hint").textContent = `Hint: ${data.hint}`;
     } else {
-      // Update lives if backend still returns lives_left in error response
+      //update lives if backend still returns lives_left in error response
       if (data.lives_left !== undefined) {
         livesDisplay.textContent = `Lives: ${data.lives_left}`;
       }
@@ -232,7 +233,7 @@ hintBtn.addEventListener("click", async () => {
   }
 });
 
-// === Show Message ===
+//show message
 function showMessage(text) {
   message.textContent = text;
   setTimeout(() => {
@@ -264,7 +265,7 @@ document.getElementById("logoutBtn").addEventListener("click", async () => {
     
     setTimeout(() => {
       window.location.href = "/index.html";
-    }, 300); // Wait 300ms to let cookie clear and then redirect to login/signup page
+    }, 300); //wait 300ms to let cookie clear and then redirect to login/signup page
   } catch (err) {
     console.error("Logout failed:", err);
   }
