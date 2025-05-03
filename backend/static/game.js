@@ -179,7 +179,7 @@ async function submitGuess() {
 
         setTimeout(() => {
           window.location.href = "/stats";
-        }, 2500); //slightly longer delay for dramatic effect
+        }, 2500); //slightly longer delay for dramatic effect lol
       }
     } else {
       showMessage(data.error || "Invalid guess");

@@ -61,7 +61,7 @@ button {
 
 
 
-/* Feedback colors */
+/* feedback colors */
 .tile.green {
   background-color: #6aaa64;
   color: white;
@@ -80,7 +80,7 @@ button {
   border-color: #787c7e;
 }
 
-/* Messages */
+/* messages */
 .message {
   margin-top: 15px;
   font-size: 18px;

@@ -1,6 +1,0 @@
-CREATE TABLE words (
-    id SERIAL PRIMARY KEY,
-    word VARCHAR(5) UNIQUE NOT NULL,
-    is_solution BOOLEAN DEFAULT FALSE,
-    used BOOLEAN DEFAULT FALSE
-);

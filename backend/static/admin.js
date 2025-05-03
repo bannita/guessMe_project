@@ -4,7 +4,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   await loadUsers();
   await loadWords();
 
-  // Handle new word submission
+  //handle new word submission
   document.getElementById("addWordForm").addEventListener("submit", async (e) => {
     e.preventDefault();
 
@@ -37,7 +37,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   });
 });
 
-// Load all users
+//load all users
 async function loadUsers() {
   try {
     const res = await fetch(`${BASE_URL}/api/admin/users`, { credentials: "include" });
@@ -62,7 +62,7 @@ async function loadUsers() {
   }
 }
 
-// Delete a user
+//delete user
 async function deleteUser(id, username) {
   if (!confirm(`Delete user '${username}'?`)) return;
 
@@ -86,7 +86,7 @@ async function deleteUser(id, username) {
   }
 }
 
-// Load all words
+//load all words
 async function loadWords() {
   try {
     const res = await fetch(`${BASE_URL}/api/admin/words`, { credentials: "include" });
@@ -111,7 +111,7 @@ async function loadWords() {
   }
 }
 
-// Delete a word
+//delete a word
 async function deleteWord(id, wordText) {
   if (!confirm(`Delete word '${wordText}'?`)) return;
 

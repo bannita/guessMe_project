@@ -4,7 +4,7 @@ import random
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import date
 
-# Common status codes we use(I need this comment for me to remamber status codes so everyone else can ignore it^^)
+# Common status codes we use(I need this comment for me to remamber status codes so everyone else can ignore it^-^)
 # 200: OK (success)
 # 201: Created
 # 400: Bad request (e.g. missing fields)
@@ -125,13 +125,40 @@ def delete_account():
     GameSession.query.filter_by(user_id=user.id).delete()
     DailyLife.query.filter_by(user_id=user.id).delete()
 
-    #finally delete the user
+    #finally deletes the user
     db.session.delete(user)
     db.session.commit()
 
     session.clear()
 
     return jsonify({"message": "Your account has been deleted."}), 200
+
+@routes.route("/api/change-password", methods=["POST"])
+def change_password():
+    email = session.get("email")
+    if not email:
+        return jsonify({"error": "Not logged in"}), 401
+
+    data = request.get_json()
+    current_pw = data.get("current_password")
+    new_pw = data.get("new_password")
+
+    if not current_pw or not new_pw:
+        return jsonify({"error": "Both current and new passwords are required."}), 400
+
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    # Check current password
+    if not check_password_hash(user.password, current_pw):
+        return jsonify({"error": "Current password is incorrect."}), 403
+
+    # Update password
+    user.password = generate_password_hash(new_pw)
+    db.session.commit()
+
+    return jsonify({"message": "Password changed successfully."}), 200
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -175,7 +202,7 @@ def start_game():
         used_word_ids.append(gamesession[0])
 
 
-    #find words this user hasn't seen yet
+    #find words this user hasnt seen yet
     available_words = Word.query.filter(Word.is_solution == True, ~Word.id.in_(used_word_ids)).all()
 
     if not available_words:
@@ -332,62 +359,6 @@ def end_game():
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ LIVES AND HINTS ROUTES ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-#route for giving lives
-@routes.route("/api/lives/<email>")
-def get_lives(email):
-    user = User.query.filter_by(email=email).first()
-    if not user:
-        return jsonify({"error": "User not found"}), 404
-
-    today = date.today()
-
-    #check if lives already recorded for today
-    lives = DailyLife.query.filter_by(user_id=user.id, date=today).first()
-
-    if not lives:
-        #create new entry for today
-        lives = DailyLife(user_id=user.id, lives_left=5, date=today)
-        db.session.add(lives)
-        db.session.commit()
-
-    return jsonify({
-        "date": today.strftime("%Y-%m-%d"),
-        "lives_left": lives.lives_left
-    })
-
-#route for substracting live
-@routes.route("/api/use-life", methods=["POST"])
-def use_life():
-    email = session.get("email")
-    if not email:
-        return jsonify({"error": "Not logged in"}), 401
-
-    user = User.query.filter_by(email=email).first()
-    if not user:
-        return jsonify({"error": "User not found"}), 404
-
-    today = date.today()
-    lives = DailyLife.query.filter_by(user_id=user.id, date=today).first()
-
-    #if no record exists for today create one with 5 lives
-    if not lives:
-        lives = DailyLife(user_id=user.id, lives_left=5, date = today)
-        db.session.add(lives)
-        db.session.commit()
-
-    if lives.lives_left <= 0:
-        return jsonify({"error": "No lives left for today"}), 403
-
-    #subtract one life
-    lives.lives_left -= 1
-    db.session.commit()
-
-    return jsonify({
-        "message": "Life used",
-        "lives_left": lives.lives_left
-    })
-
 @routes.route("/api/use-hint", methods=["POST"])
 def use_hint():
     email = session.get("email")
@@ -491,33 +462,24 @@ def stats(email):
         else:
             temp_streak = 0
 
-    # After loop, current_streak = temp_streak
     current_streak = temp_streak
 
-    # Lives and hints
     lives_today = DailyLife.query.filter_by(user_id=user.id, date=today).first()
-    lives_left = lives_today.lives_left if lives_today else 0
-    hints_used = lives_today.hints_used if lives_today else 0
+    if lives_today:
+        lives_left = lives_today.lives_left
+        hints_used = lives_today.hints_used
+    else:
+        lives_left = 0
+        hints_used = 0
 
-    # Today's latest word
+    #gets today's latest word
     today_session = GameSession.query.filter_by(user_id=user.id, date=today).order_by(GameSession.id.desc()).first()
-    today_word = today_session.word.word if today_session and today_session.word else None
+    if today_session and today_session.word:
+        today_word = today_session.word.word
+    else:
+        today_word = None
 
-    # Today's hint
-    hint = None
-    if today_session:
-        solution = today_session.word.word.lower()
-        guesses = Guess.query.filter_by(game_session_id=today_session.id).all()
-        if guesses:
-            revealed = ["_"] * len(solution)
-            for guess in guesses:
-                guess_word = guess.guess.lower()
-                for i in range(len(solution)):
-                    if i < len(guess_word) and guess_word[i] == solution[i]:
-                        revealed[i] = solution[i]
-            hint = " ".join(revealed)
-
-    # Today's attempts
+    #today's attempts
     attempts = 0
     if today_session:
         attempts = Guess.query.filter_by(game_session_id=today_session.id).count()
@@ -535,7 +497,6 @@ def stats(email):
         "lives_left": lives_left,
         "hints_used": hints_used,
         "today_word": today_word,
-        "hint": hint,
         "attempts": attempts,
         "win_percentage": win_percentage
     })
@@ -546,7 +507,7 @@ def stats_me():
     if not email:
         return jsonify({"error": "Not logged in"}), 401
 
-    return stats(email) #use existing stats function
+    return stats(email) #uses existing stats function
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ADMIN ROUTES ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -578,7 +539,7 @@ def admin_delete_user(user_id):
     if not user:
         return jsonify({"error": "User not found"}), 404
 
-    # Clean up user's related data
+    #cllean up user's related data
     Guess.query.filter_by(user_id=user.id).delete()
     GameSession.query.filter_by(user_id=user.id).delete()
     GameStat.query.filter_by(user_id=user.id).delete()
@@ -649,33 +610,6 @@ def admin_delete_word(word_id):
     db.session.commit()
 
     return jsonify({"message": f"Word '{word.word}' deleted."}), 200
-
-@routes.route("/api/change-password", methods=["POST"])
-def change_password():
-    email = session.get("email")
-    if not email:
-        return jsonify({"error": "Not logged in"}), 401
-
-    data = request.get_json()
-    current_pw = data.get("current_password")
-    new_pw = data.get("new_password")
-
-    if not current_pw or not new_pw:
-        return jsonify({"error": "Both current and new passwords are required."}), 400
-
-    user = User.query.filter_by(email=email).first()
-    if not user:
-        return jsonify({"error": "User not found"}), 404
-
-    # Check current password
-    if not check_password_hash(user.password, current_pw):
-        return jsonify({"error": "Current password is incorrect."}), 403
-
-    # Update password
-    user.password = generate_password_hash(new_pw)
-    db.session.commit()
-
-    return jsonify({"message": "Password changed successfully."}), 200
 
 
 

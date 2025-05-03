@@ -1,6 +1,6 @@
 const BASE_URL = "http://127.0.0.1:5000";
 
-// When the page loads, fetch user info
+//when the page loads, fetch user info
 window.addEventListener("DOMContentLoaded", async () => {
   try {
     const res = await fetch(`${BASE_URL}/api/me`, {
@@ -33,7 +33,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   }
 });
 
-// Logout button
+//logout button
 document.getElementById("logoutBtn").addEventListener("click", async () => {
   try {
     await fetch(`${BASE_URL}/api/logout`, {
@@ -48,7 +48,7 @@ document.getElementById("logoutBtn").addEventListener("click", async () => {
   }
 });
 
-// Delete account button
+//delete account button
 document.getElementById("deleteBtn").addEventListener("click", async () => {
   const confirmed = confirm("Are you sure you want to delete your account? This cannot be undone.");
   if (!confirmed) return;
@@ -73,11 +73,12 @@ document.getElementById("deleteBtn").addEventListener("click", async () => {
   }
 });
 
-// Back button
+//back button
 document.getElementById("backBtn").addEventListener("click", () => {
-  window.history.back(); // or manually: window.location.href = "/game";
+  window.history.back();
 });
 
+//change password button
 document.getElementById("changePasswordForm").addEventListener("submit", async (e) => {
   e.preventDefault();
 
@@ -89,13 +90,8 @@ document.getElementById("changePasswordForm").addEventListener("submit", async (
     const res = await fetch(`${BASE_URL}/api/change-password`, {
       method: "POST",
       credentials: "include",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        current_password: currentPassword,
-        new_password: newPassword
-      })
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({current_password: currentPassword, new_password: newPassword})
     });
 
     const data = await res.json();

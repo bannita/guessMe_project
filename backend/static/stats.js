@@ -1,8 +1,5 @@
-//Fetches and shows user stats from /stats route.
-
 const BASE_URL = "http://127.0.0.1:5000";
 
-// Run when the page loads
 window.addEventListener("DOMContentLoaded", async () => {
   try {
     const res = await fetch(`${BASE_URL}/api/stats/me`, {
@@ -16,19 +13,19 @@ window.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
-    // Show game result
-    const resultEl = document.getElementById("result");
+    //show game result
+    const result = document.getElementById("result");
     if (data.today_word && data.current_streak > 0) {
-      resultEl.textContent = "🎉 You won!";
+      result.textContent = "🎉 You won!";
       document.getElementById("attemptsRow").textContent = `You guessed the word in ${data.attempts} tries.`;
       
     } else {
-      resultEl.textContent = "😢 You lost!";
+      result.textContent = "😢 You lost!";
       document.getElementById("correctWordRow").textContent =
         `The correct word was: ${data.today_word}`;
     }
 
-    // Fill in stats
+    //fill in stats
     document.getElementById("gamesPlayed").textContent = data.games_played;
     document.getElementById("wins").textContent = data.wins;
     const winRate = Math.floor(data.win_percentage); //get only the integer part
@@ -38,7 +35,6 @@ window.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("livesLeft").textContent = data.lives_left;
     document.getElementById("hintsUsed").textContent = data.hints_used;
 
-    // Decide whether to show replay or "no lives" message
     const replayBtn = document.getElementById("replayBtn");
     const noLivesMsg = document.getElementById("noLivesMsg");
 
