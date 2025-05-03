@@ -253,7 +253,10 @@ def guess():
     solution_letter_count = {}
 
     for letter in solution:
-        solution_letter_count[letter] = solution_letter_count.get(letter, 0) + 1
+        if letter in solution_letter_count:
+            solution_letter_count[letter] += 1
+        else:
+            solution_letter_count[letter] = 1
 
     for i in range(len(guess_clean)):
         if guess_clean[i] == solution[i]:
@@ -407,7 +410,7 @@ def use_hint():
     if lives.lives_left <= 0:
         return jsonify({"error": "No lives left to use a hint"}), 403
 
-    # get current game session
+    #get current game session
     game_session = GameSession.query.filter_by(user_id=user.id, date=today, active=True).first()
     if not game_session:
         return jsonify({"error": "No active game session found"}), 404
@@ -418,23 +421,27 @@ def use_hint():
 
     solution = word.word.lower()
 
-    # get guesses for this game session only
+    #get guesses for this game session only
     guesses = Guess.query.filter_by(game_session_id=game_session.id).all()
     if not guesses:
         return jsonify({"error": "You must make at least one guess before using a hint"}), 403
 
-    # build revealed state based on green matches
+    #build revealed state based on green matches
     revealed = ["_"] * len(solution)
 
     for guess in guesses:
         guess_word = guess.guess.lower()
         for i in range(len(solution)):
             if i < len(guess_word) and guess_word[i] == solution[i]:
-                revealed[i] = solution[i]  # mark green
+                revealed[i] = solution[i]
 
-    # reveal one unrevealed letter
+    #reveal one unrevealed letter
     import random
-    unrevealed_indices = [i for i, char in enumerate(revealed) if char == "_"]
+    unrevealed_indices = []
+
+    for i in range(len(revealed)):
+        if revealed[i] == "_":
+            unrevealed_indices.append(i)
 
     if not unrevealed_indices:
         return jsonify({"message": "All letters already revealed!"}), 400
@@ -444,7 +451,7 @@ def use_hint():
 
     hint_string = " ".join(revealed)
 
-    # subtract life + track hint use
+    #subtract life and track hint use
     lives.lives_left -= 1
     lives.hints_used += 1
     db.session.commit()
@@ -467,9 +474,6 @@ def stats(email):
 
     today = date.today()
 
-    # Get all today's finished GameStats
-    game_stats = GameStat.query.filter_by(user_id=user.id, date=today).order_by(GameStat.id.asc()).all()
-
     all_game_stats = GameStat.query.filter_by(user_id=user.id).order_by(GameStat.id.asc()).all()
     games_played = len(all_game_stats)
 
@@ -478,7 +482,7 @@ def stats(email):
     max_streak = 0
     temp_streak = 0
 
-    for game in game_stats:
+    for game in all_game_stats:
         if game.won:
             wins += 1
             temp_streak += 1

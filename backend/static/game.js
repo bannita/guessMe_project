@@ -1,11 +1,18 @@
-//Sends/receives guesses, shows hints, updates lives...
 const BASE_URL = "http://127.0.0.1:5000";
 const NUM_ROWS = 6;
 const WORD_LENGTH = 5;
 
 let currentRow = 0;
 let currentCol = 0;
-let guesses = Array.from({ length: NUM_ROWS }, () => Array(WORD_LENGTH).fill(""));
+let guesses = [];
+
+for (let i = 0; i < NUM_ROWS; i++) {
+  let row = [];
+  for (let j = 0; j < WORD_LENGTH; j++) {
+    row.push("");
+  }
+  guesses.push(row);
+}
 
 const grid = document.getElementById("guessGrid");
 const message = document.getElementById("message");
@@ -14,15 +21,21 @@ const hintBtn = document.getElementById("hintBtn");
 const tracker = document.getElementById("letter-tracker");
 const alphabet = "abcdefghijklmnopqrstuvwxyz";
 
+for (let letter of alphabet) {
+  const box = document.createElement("div");
+  box.classList.add("letter-box");
+  box.id = `letter-${letter}`;
+  box.textContent = letter;
+  tracker.appendChild(box);
+}
+
 //start Game
 async function startGame() {
   try {
     const res = await fetch(`${BASE_URL}/api/start-game`, {
       method: "POST",
       credentials: "include",
-      headers: {
-        "Content-Type": "application/json"
-      },
+      headers: {"Content-Type": "application/json"},
       body: JSON.stringify({})
     });
 
@@ -32,17 +45,8 @@ async function startGame() {
     if (res.ok) {
       livesDisplay.textContent = `Lives: ${data.lives_left}`;
       console.log("Game started:", data.word);
-
-      //if lives are already 0 show noLivesContainer(for safety)
-      if (data.lives_left <= 0) {
-        document.getElementById("noLivesContainer").classList.remove("hidden");
-        document.getElementById("guessGrid").style.display = "none";
-        document.getElementById("keyboard")?.remove();
-        hintBtn.style.display = "none";
-      }
-
     } else {
-      //if lives are already 0 show noLivesContainer
+      //if lives are 0 show noLivesContainer
       if (data.lives_left !== undefined) {
         livesDisplay.textContent = `Lives: ${data.lives_left}`;
 
@@ -65,8 +69,7 @@ async function startGame() {
 startGame();
 
 
-
-//creates 5x6 grid for wordle
+//creates 5x6 wordle grid
 function createGrid() {
   for (let row = 0; row < NUM_ROWS; row++) {
     for (let col = 0; col < WORD_LENGTH; col++) {
@@ -126,9 +129,7 @@ async function submitGuess() {
     const res = await fetch(`${BASE_URL}/api/guess`, {
       method: "POST",
       credentials: "include",
-      headers: {
-        "Content-Type": "application/json"
-      },
+      headers: {"Content-Type": "application/json"},
       body: JSON.stringify({ guess: guessWord })
     });
 
@@ -165,7 +166,7 @@ async function submitGuess() {
       if (data.correct) {
         message.textContent = "🎉 Congratulations! You guessed it!";
         message.className = "message win";
-        await endGame(true, data.attempts); //record win
+        await endGame(true); //record win
 
         setTimeout(() => {
           window.location.href = "/stats";
@@ -174,11 +175,11 @@ async function submitGuess() {
       } else if (currentRow === NUM_ROWS) {
         message.textContent = `😢 You lost! The correct word was: ${data.solution_word}`;
         message.className = "message lose";
-        await endGame(false, data.attempts); //record loss
+        await endGame(false); //record loss
 
         setTimeout(() => {
           window.location.href = "/stats";
-        }, 1500); //slightly longer delay for dramatic effect
+        }, 2500); //slightly longer delay for dramatic effect
       }
     } else {
       showMessage(data.error || "Invalid guess");
@@ -203,9 +204,7 @@ hintBtn.addEventListener("click", async () => {
     const res = await fetch(`${BASE_URL}/api/use-hint`, {
       method: "POST",
       credentials: "include",
-      headers: {
-        "Content-Type": "application/json"
-      },
+      headers: {"Content-Type": "application/json"},
       body: JSON.stringify({})
     });
 
@@ -238,18 +237,16 @@ function showMessage(text) {
   message.textContent = text;
   setTimeout(() => {
     message.textContent = "";
-  }, 2500);
+  }, 3500);
 }
 
-async function endGame(won, attempts) {
+async function endGame(won) {
   try {
     await fetch(`${BASE_URL}/api/end-game`, {
       method: "POST",
       credentials: "include",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ won, attempts })
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ won })
     });
   } catch (err) {
     console.error("Failed to record game result:", err);
@@ -271,21 +268,10 @@ document.getElementById("logoutBtn").addEventListener("click", async () => {
   }
 });
 
-const profileBtn = document.getElementById("profileBtn");
-if (profileBtn) {
-  profileBtn.addEventListener("click", () => {
-    window.location.href = "/profile";
-  });
-}
+document.getElementById("profileBtn").addEventListener("click", () => {
+  window.location.href = "/profile";
+});
 
 document.getElementById("goToStatsBtn").addEventListener("click", () => {
   window.location.href = "/stats";
 });
-
-for (let letter of alphabet) {
-  const box = document.createElement("div");
-  box.classList.add("letter-box");
-  box.id = `letter-${letter}`;
-  box.textContent = letter;
-  tracker.appendChild(box);
-}
