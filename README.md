@@ -1,7 +1,8 @@
 # Guess Me - A Word Guessing Game Web App
 
 **Author:** Ani Bidzinashvili
-**Course:** \[CS 250, Final Project]
+**Course:** CS 250, Final Project
+**Repository:** https://github.com/bannita/guessMe_project/tree/main
 
 ---
 
@@ -11,16 +12,27 @@
 
 ---
 
+## Screenshots
+
+---
+
 ## Features
 
-* User authentication (signup, login, logout)
-* 5-letter word guessing game with color-coded feedback
-* Daily lives system (5 lives per day)
-* Hint system that reveals one letter per hint (costs 1 life)
-* Game statistics tracking: playd games, wins, win rate, attempts, streaks, lives used
-* Personal profile page with personal info and features to change password and account delete
-* Admin panel: add/delete words, manage users
+* User Authentication: Sign up, log in, and log out.
+* Daily Word Challenge: A new 5-letter word to guess each day.
+* Lives System: Players have 5 lives per day; incorrect guesses and hints consume lives.
+* Hint Mechanism: Reveal one letter of the word at the cost of one life.
+* Color-Coded Feedback: Visual indicators for correct letters and positions (Green -> correct letter, correct position; Yellow -> correct letter, wrong position).
+* Player Statistics:
+    * Games played and won
+    * Win rate, current streak and max streak
+    * Lives and hints, attempts needed/correct word if game was lost
+* Personal Profile Page: View personal information, change password and delete account.
+* Admin Panel:
+    * Manage user accounts
+    * Add, edit, or remove words
 * Fully containerized using Docker and PostgreSQL
+
 
 ---
 
@@ -71,13 +83,13 @@ docker run -p 5000:5000 --name guessme_container --env-file .env guessme_app
 | `DB_NAME`     | PostgreSQL database name                             |
 | `DB_USER`     | PostgreSQL username                                  |
 | `DB_PASSWORD` | PostgreSQL password                                  |
-| `DB_HOST`     | host.docker.internal                                |
+| `DB_HOST`     | host.docker.internal                                 |
 | `DB_PORT`     | Usually `5432`                                       |
 | `SECRET_KEY`  | Flask secret key for sessions                        |
 
 ---
 
-## How to Use the App
+## How to Use/Test the App
 
 1. Go to `http://localhost:5000`
 2. Create an account or log in
@@ -88,6 +100,21 @@ docker run -p 5000:5000 --name guessme_container --env-file .env guessme_app
 7. Visit your profile to update password or delete account
 
 ---
+
+### Game Rules & Feedback Logic
+
+- Each guess must be a valid 5-letter word.
+- The game provides feedback using Wordle-style colors:
+  - 🟩 **Green**: Letter is correct and in the correct position.
+  - 🟨 **Yellow**: Letter is correct but in the wrong position.
+  - ⬜ **Gray**: Letter is not in the word at all.
+- You have **6 attempts per game**.
+- You start with **5 lives per day**:
+  - 1 life is lost per game.
+  - 1 life is lost per hint used.
+  - Lives reset at midnight.
+
+  ---
 
 ## Admin Panel Access
 
@@ -100,6 +127,68 @@ Admin capabilities:
 
 * View and delete users
 * View, add, or delete words
+
+---
+
+## 📡 API Endpoints Overview
+
+### 🔐 Authentication
+
+| Method | Route              | Description                          |
+|--------|--------------------|--------------------------------------|
+| POST   | `/api/signup`      | Register a new user                  |
+| POST   | `/api/login`       | Log in with email and password       |
+| POST   | `/api/logout`      | Log out the current session          |
+| GET    | `/api/me`          | Get current logged-in user's info    |
+
+---
+
+### 👤 Profile Management
+
+| Method | Route                   | Description                          |
+|--------|-------------------------|--------------------------------------|
+| POST   | `/api/delete-account`   | Permanently delete current user      |
+| POST   | `/api/change-password`  | Change current user's password       |
+
+---
+
+### 🎮 Game Logic
+
+| Method | Route              | Description                                  |
+|--------|--------------------|----------------------------------------------|
+| POST   | `/api/start-game`  | Start a new game session (if lives left)     |
+| POST   | `/api/guess`       | Submit a word guess                          |
+| POST   | `/api/end-game`    | End the current game (win/loss & save stats) |
+
+---
+
+### 💡 Lives & Hints
+
+| Method | Route             | Description                                   |
+|--------|-------------------|-----------------------------------------------|
+| POST   | `/api/use-hint`   | Reveal one unrevealed letter (costs 1 life)   |
+
+---
+
+### 📊 Stats
+
+| Method | Route                   | Description                                      |
+|--------|-------------------------|--------------------------------------------------|
+| GET    | `/api/stats/me`         | Get stats for current logged-in user            |
+| GET    | `/api/stats/<email>`    | Get stats for a specific user (by email)        |
+
+---
+
+### 🛠️ Admin Panel (restricted to admin email)
+
+| Method | Route                                  | Description                             |
+|--------|----------------------------------------|-----------------------------------------|
+| GET    | `/api/admin/users`                     | View all users                          |
+| DELETE | `/api/admin/delete-user/<user_id>`     | Delete a user by ID                     |
+| GET    | `/api/admin/words`                     | View all words                          |
+| POST   | `/api/admin/add-word`                  | Add a new word                          |
+| DELETE | `/api/admin/delete-word/<word_id>`     | Delete a word by ID                     |
+
 
 ---
 
@@ -139,6 +228,28 @@ setup_scripts/
 Dockerfile / docker-compose.yml
 requirements.txt     → Python dependencies
 ```
+### Frontend Files Overview
+
+static/
+├── index.html       → Landing page with login/signup form
+├── index.css        → Styles for landing page
+├── auth.js          → Handles login and signup form submissions
+
+├── game.html        → Main game interface
+├── game.css         → Styles for the game page
+├── game.js          → Handles game logic, guesses, hints, and feedback
+
+├── stats.html       → Stats and replay screen
+├── stats.css        → Styles for stats page
+├── stats.js         → Displays win/loss, streaks, and stats
+
+├── profile.html     → User profile page
+├── profile.css      → Styles for profile page
+├── profile.js       → Change password and delete account logic
+
+├── admin.html       → Admin panel interface
+├── admin.css        → Styles for admin panel
+├── admin.js         → View/delete users and add/delete words
 
 ---
 
