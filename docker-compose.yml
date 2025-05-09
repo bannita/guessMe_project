@@ -1,6 +1,19 @@
 version: '3.8'
 
 services:
+  web:
+    build: .
+    container_name: guessme-web
+    command: flask run --host=0.0.0.0 --port=5000
+    ports:
+      - "5000:5000"
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      - db
+
   db:
     image: postgres:15
     container_name: guessme-postgres

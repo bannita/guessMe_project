@@ -1,8 +1,8 @@
 from flask import Flask, session, redirect
 from flask_sqlalchemy import SQLAlchemy
 import os
-from routes import routes
-from models import db, User, Word, GameStat, DailyLife, GameSession, Guess
+from backend.routes import routes
+from backend.models import db, User, Word, GameStat, DailyLife, GameSession, Guess
 from datetime import timedelta
 from flask_cors import CORS
 

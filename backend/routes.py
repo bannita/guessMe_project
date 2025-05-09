@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request, session
-from models import db, Word, User, GameStat, DailyLife, Guess, GameSession
+from backend.models import db, Word, User, GameStat, DailyLife, Guess, GameSession
 import random
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import date

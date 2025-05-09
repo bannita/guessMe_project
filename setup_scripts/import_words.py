@@ -1,7 +1,7 @@
 import json
 import os
 from backend.models import db, Word
-from valid_words import it as valid_words_list
+from setup_scripts.valid_words import it as valid_words_list
 from flask import Flask
 from backend.app import app
 
