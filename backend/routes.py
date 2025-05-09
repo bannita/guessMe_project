@@ -617,4 +617,3 @@ def admin_delete_word(word_id):
 
 
 
-

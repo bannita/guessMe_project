@@ -1,18 +1,14 @@
 # Guess Me - A Word Guessing Game Web App
 
-**Author:** Ani Bidzinashvili
-**Course:** CS 250, Final Project
-**Repository:** https://github.com/bannita/guessMe_project/tree/main
+**Author:** Ani Bidzinashvili  
+**Course:** CS 250, Final Project  
+**Repository:** https://github.com/bannita/guessMe_project/tree/main  
 
 ---
 
 ## Project Description
 
 **Guess Me** is a web-based word game inspired by Wordle. Players log in, guess 5-letter words, and try to find the correct one using letter-by-letter feedback. The app tracks played games, wins, win rate, streaks, lives, hints, and more. It includes a custom-built admin panel for managing users and word entries.
-
----
-
-## Screenshots
 
 ---
 
@@ -105,9 +101,9 @@ docker run -p 5000:5000 --name guessme_container --env-file .env guessme_app
 
 - Each guess must be a valid 5-letter word.
 - The game provides feedback using Wordle-style colors:
-  - 🟩 **Green**: Letter is correct and in the correct position.
-  - 🟨 **Yellow**: Letter is correct but in the wrong position.
-  - ⬜ **Gray**: Letter is not in the word at all.
+  - **Green**: Letter is correct and in the correct position.
+  - **Yellow**: Letter is correct but in the wrong position.
+  - **Gray**: Letter is not in the word at all.
 - You have **6 attempts per game**.
 - You start with **5 lives per day**:
   - 1 life is lost per game.
@@ -120,75 +116,13 @@ docker run -p 5000:5000 --name guessme_container --env-file .env guessme_app
 
 To access the admin panel:
 
-* Use the email `anibidzinashvili98@gmail.com` when signing up
+* Use the email `anibidzinashvili98@gmail.com` when logging in (password: guessme)
 * Once logged in, an "Admin Panel" button will appear on your profile page
 
 Admin capabilities:
 
 * View and delete users
 * View, add, or delete words
-
----
-
-## 📡 API Endpoints Overview
-
-### 🔐 Authentication
-
-| Method | Route              | Description                          |
-|--------|--------------------|--------------------------------------|
-| POST   | `/api/signup`      | Register a new user                  |
-| POST   | `/api/login`       | Log in with email and password       |
-| POST   | `/api/logout`      | Log out the current session          |
-| GET    | `/api/me`          | Get current logged-in user's info    |
-
----
-
-### 👤 Profile Management
-
-| Method | Route                   | Description                          |
-|--------|-------------------------|--------------------------------------|
-| POST   | `/api/delete-account`   | Permanently delete current user      |
-| POST   | `/api/change-password`  | Change current user's password       |
-
----
-
-### 🎮 Game Logic
-
-| Method | Route              | Description                                  |
-|--------|--------------------|----------------------------------------------|
-| POST   | `/api/start-game`  | Start a new game session (if lives left)     |
-| POST   | `/api/guess`       | Submit a word guess                          |
-| POST   | `/api/end-game`    | End the current game (win/loss & save stats) |
-
----
-
-### 💡 Lives & Hints
-
-| Method | Route             | Description                                   |
-|--------|-------------------|-----------------------------------------------|
-| POST   | `/api/use-hint`   | Reveal one unrevealed letter (costs 1 life)   |
-
----
-
-### 📊 Stats
-
-| Method | Route                   | Description                                      |
-|--------|-------------------------|--------------------------------------------------|
-| GET    | `/api/stats/me`         | Get stats for current logged-in user            |
-| GET    | `/api/stats/<email>`    | Get stats for a specific user (by email)        |
-
----
-
-### 🛠️ Admin Panel (restricted to admin email)
-
-| Method | Route                                  | Description                             |
-|--------|----------------------------------------|-----------------------------------------|
-| GET    | `/api/admin/users`                     | View all users                          |
-| DELETE | `/api/admin/delete-user/<user_id>`     | Delete a user by ID                     |
-| GET    | `/api/admin/words`                     | View all words                          |
-| POST   | `/api/admin/add-word`                  | Add a new word                          |
-| DELETE | `/api/admin/delete-word/<word_id>`     | Delete a word by ID                     |
-
 
 ---
 
@@ -207,10 +141,65 @@ This script uses SQLAlchemy and pulls from:
 
 ---
 
-## Acknowledgments
+## API Endpoints Overview
 
-* Built as a final project for \[CS250]
-* Inspired by Wordle and other guessing games
+### Authentication
+
+| Method | Route              | Description                          |
+|--------|--------------------|--------------------------------------|
+| POST   | `/api/signup`      | Register a new user                  |
+| POST   | `/api/login`       | Log in with email and password       |
+| POST   | `/api/logout`      | Log out the current session          |
+| GET    | `/api/me`          | Get current logged-in user's info    |
+
+---
+
+### Profile Management
+
+| Method | Route                   | Description                          |
+|--------|-------------------------|--------------------------------------|
+| POST   | `/api/delete-account`   | Permanently delete current user      |
+| POST   | `/api/change-password`  | Change current user's password       |
+
+---
+
+### Game Logic
+
+| Method | Route              | Description                                  |
+|--------|--------------------|----------------------------------------------|
+| POST   | `/api/start-game`  | Start a new game session (if lives left)     |
+| POST   | `/api/guess`       | Submit a word guess                          |
+| POST   | `/api/end-game`    | End the current game (win/loss & save stats) |
+
+---
+
+### Lives & Hints
+
+| Method | Route             | Description                                   |
+|--------|-------------------|-----------------------------------------------|
+| POST   | `/api/use-hint`   | Reveal one unrevealed letter (costs 1 life)   |
+
+---
+
+### Stats
+
+| Method | Route                   | Description                                      |
+|--------|-------------------------|--------------------------------------------------|
+| GET    | `/api/stats/me`         | Get stats for current logged-in user            |
+| GET    | `/api/stats/<email>`    | Get stats for a specific user (by email)        |
+
+---
+
+### Admin Panel (restricted to admin email)
+
+| Method | Route                                  | Description                             |
+|--------|----------------------------------------|-----------------------------------------|
+| GET    | `/api/admin/users`                     | View all users                          |
+| DELETE | `/api/admin/delete-user/<user_id>`     | Delete a user by ID                     |
+| GET    | `/api/admin/words`                     | View all words                          |
+| POST   | `/api/admin/add-word`                  | Add a new word                          |
+| DELETE | `/api/admin/delete-word/<word_id>`     | Delete a word by ID                     |
+
 
 ---
 
@@ -230,6 +219,7 @@ requirements.txt     → Python dependencies
 ```
 ### Frontend Files Overview
 
+```
 static/
 ├── index.html       → Landing page with login/signup form
 ├── index.css        → Styles for landing page
@@ -250,12 +240,34 @@ static/
 ├── admin.html       → Admin panel interface
 ├── admin.css        → Styles for admin panel
 ├── admin.js         → View/delete users and add/delete words
+```
 
 ---
 
-## Good Luck and Have Fun
+## Screenshots
 
-Thanks for reviewing the project.
-Feel free to open issues, try new guesses, or suggest improvements.
+### Authentication
+<img src="https://github.com/user-attachments/assets/6b21d6fa-c82d-48f1-8145-70a0687c159e" width="500"/>
+
+### Game
+<img src="https://github.com/user-attachments/assets/4e313a2f-e3b5-4c7d-ae67-c72261a51e7c" width="500"/>
+
+### Stats
+<img src="https://github.com/user-attachments/assets/2aab2eec-23cf-4267-9353-1b8a15cfbebf" width="500"/>
+
+### Profile
+<img src="https://github.com/user-attachments/assets/345808e7-a161-481a-a34a-0fe6c974f4fc" width="500"/>
+
+### Admin Panel
+<img src="https://github.com/user-attachments/assets/d1526915-4d2b-4f51-99a6-6a3446354a4d" width="500"/>
+
+---
+
+
+## Thank You
+
+This app was built with care as a final project for CS250 and was inspired by Wordle and other guessing games.  
+I hope you enjoy exploring it! 
+
 
 ---

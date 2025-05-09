@@ -4,9 +4,16 @@ import os
 from routes import routes
 from models import db, User, Word, GameStat, DailyLife, GameSession, Guess
 from datetime import timedelta
+from flask_cors import CORS
+
 
 #creates flask app and allow static files to be served directly from the root URL
 app = Flask(__name__, static_url_path="")
+# CORS and Session config
+app.config['SESSION_COOKIE_SAMESITE'] = "Lax"
+app.config['SESSION_COOKIE_SECURE'] = False
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+CORS(app, supports_credentials=True)
 
 app.secret_key = os.getenv("SECRET_KEY", "fallbacksecretkey")
 
