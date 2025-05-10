@@ -44,7 +44,7 @@
 
 This project uses **Docker Compose** to run the entire application. No manual setup of Python, PostgreSQL, or dependencies is required.
 
-### ✅ Prerequisites
+### Prerequisites
 
 Before starting, make sure you have the following installed:
 
@@ -121,7 +121,7 @@ To stop the app but keep data:
 docker-compose down
 ```
 
-To stop and **delete all data** (⚠️ includes users and word lists):
+To stop and **delete all data** (includes users and word lists):
 ```bash
 docker-compose down --volumes
 ```
@@ -177,21 +177,6 @@ Admin capabilities:
 
 * View and delete users
 * View, add, or delete words
-
----
-
-## Resetting the Word List (optional)
-
-If you need to re-import solution or valid words:
-
-```bash
-python setup_scripts/import_words.py
-```
-
-This script uses SQLAlchemy and pulls from:
-
-* `setup_scripts/solution_words.json`
-* `setup_scripts/valid_words.py`
 
 ---
 
