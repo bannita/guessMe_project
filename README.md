@@ -40,9 +40,9 @@
 * Tools: Docker, VS Code, DBeaver
 
 ---
-## 🚀 Deployment Instructions
+## Deployment Instructions
 
-This project uses **Docker Compose** to run the entire application — including the Flask backend and PostgreSQL database — in isolated containers. No manual setup of Python, PostgreSQL, or dependencies is required.
+This project uses **Docker Compose** to run the entire application. No manual setup of Python, PostgreSQL, or dependencies is required.
 
 ### ✅ Prerequisites
 
@@ -53,7 +53,7 @@ Before starting, make sure you have the following installed:
 
 ---
 
-### 🛠️ Environment Setup
+### Environment Setup
 
 1. **Clone the repository:**
    ```bash
@@ -68,19 +68,24 @@ Before starting, make sure you have the following installed:
    cp .env.example .env
    ```
 
-   Then open `.env` and fill in your values:
+   Then open `.env` and fill in your values with your original PASSWORDS:
    ```
    DB_NAME=guessme_db
-   DB_USER=your_postgres_username
+   DB_USER=postgres
    DB_PASSWORD=your_postgres_password
    DB_HOST=db
    DB_PORT=5432
    SECRET_KEY=your_flask_secret_key
+   
+   POSTGRES_DB=guessme_db
+   POSTGRES_USER=postgres
+   POSTGRES_PASSWORD= your_postgres_password
+   
    ```
 
 ---
 
-### ▶️ Running the Application
+### Running the Application
 
 To build and start the app with Docker Compose:
 
@@ -93,11 +98,11 @@ This command will:
 - Start the PostgreSQL database container
 - Build and start the Flask web app
 - Make the app accessible at:  
-  👉 [http://127.0.0.1:5000](http://127.0.0.1:5000)
+  [http://127.0.0.1:5000](http://127.0.0.1:5000)
 
 ---
 
-### 📦 (One-Time) Import Word Lists
+### (One-Time) Import Word Lists
 
 If the word database is empty (e.g. on first setup), run this command to import valid and solution words:
 
@@ -109,7 +114,7 @@ This reads from `valid_words.py` and `solution_words.json` and populates the dat
 
 ---
 
-### 🛑 Stopping the App
+### Stopping the App
 
 To stop the app but keep data:
 ```bash
@@ -120,38 +125,6 @@ To stop and **delete all data** (⚠️ includes users and word lists):
 ```bash
 docker-compose down --volumes
 ```
-
-
-## How to Run the App (using Docker)
-
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/bannita/guessMe_project.git
-cd guessMe_project
-```
-
-### 2. Set up environment variables
-
-Copy the `.env.example` file:
-
-```bash
-cp .env.example .env
-```
-
-Then fill in the actual values (e.g. your database password).
-
-### 3. Run using Docker Compose
-
-```bash
-docker build -t guessme_app .
-docker run -p 5000:5000 --name guessme_container --env-file .env guessme_app
-```
-
-* The app will run at: `http://localhost:5000`
-* PostgreSQL will run in the background on port `5432`
-
----
 
 ## Environment Variables (from `.env`)
 
