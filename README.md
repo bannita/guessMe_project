@@ -40,6 +40,87 @@
 * Tools: Docker, VS Code, DBeaver
 
 ---
+## 🚀 Deployment Instructions
+
+This project uses **Docker Compose** to run the entire application — including the Flask backend and PostgreSQL database — in isolated containers. No manual setup of Python, PostgreSQL, or dependencies is required.
+
+### ✅ Prerequisites
+
+Before starting, make sure you have the following installed:
+
+- [Docker](https://www.docker.com/get-started)
+- [Docker Compose](https://docs.docker.com/compose/install/)
+
+---
+
+### 🛠️ Environment Setup
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/bannita/guessMe_project.git
+   cd guessMe_project
+   ```
+
+2. **Set up environment variables:**
+
+   Copy the example environment file:
+   ```bash
+   cp .env.example .env
+   ```
+
+   Then open `.env` and fill in your values:
+   ```
+   DB_NAME=guessme_db
+   DB_USER=your_postgres_username
+   DB_PASSWORD=your_postgres_password
+   DB_HOST=db
+   DB_PORT=5432
+   SECRET_KEY=your_flask_secret_key
+   ```
+
+---
+
+### ▶️ Running the Application
+
+To build and start the app with Docker Compose:
+
+```bash
+docker-compose up --build
+```
+
+This command will:
+
+- Start the PostgreSQL database container
+- Build and start the Flask web app
+- Make the app accessible at:  
+  👉 [http://127.0.0.1:5000](http://127.0.0.1:5000)
+
+---
+
+### 📦 (One-Time) Import Word Lists
+
+If the word database is empty (e.g. on first setup), run this command to import valid and solution words:
+
+```bash
+docker-compose exec web python -m setup_scripts.import_words
+```
+
+This reads from `valid_words.py` and `solution_words.json` and populates the database.
+
+---
+
+### 🛑 Stopping the App
+
+To stop the app but keep data:
+```bash
+docker-compose down
+```
+
+To stop and **delete all data** (⚠️ includes users and word lists):
+```bash
+docker-compose down --volumes
+```
+
 
 ## How to Run the App (using Docker)
 

@@ -10,12 +10,17 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
 # Set timezone
-RUN apt-get update && apt-get install -y libpq-dev gcc tzdata && \
+#RUN apt-get update && apt-get install -y libpq-dev gcc tzdata && \
+ #   ln -sf /usr/share/zoneinfo/Asia/Tbilisi /etc/localtime && \
+ #   echo "Asia/Tbilisi" > /etc/timezone
+
+ RUN apt-get update && apt-get install -y libpq-dev gcc netcat-openbsd tzdata && \
     ln -sf /usr/share/zoneinfo/Asia/Tbilisi /etc/localtime && \
     echo "Asia/Tbilisi" > /etc/timezone
 
+
 # Add system dependencies for PostgreSQL
-RUN apt-get update && apt-get install -y libpq-dev gcc
+# RUN apt-get update && apt-get install -y libpq-dev gcc
 
 # Install pip requirements
 COPY requirements.txt .
