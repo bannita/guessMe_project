@@ -8,7 +8,7 @@
 
 ## Project Description
 
-**Guess Me** is a web-based word game inspired by Wordle. Players log in, guess 5-letter words, and try to find the correct one using letter-by-letter feedback. The app tracks played games, wins, win rate, streaks, lives, hints, and more. It includes a custom-built admin panel for managing users and word entries.
+**Guess Me** is a web-based word game inspired by Wordle. Players log in, guess 5-letter words, and try to find the correct one using letter-by-letter feedback. The app tracks played games, wins, win rate, streaks, lives, hints, and more. It includes a built admin panel for managing users and words.
 
 ---
 
@@ -40,20 +40,24 @@
 * Tools: Docker, VS Code, DBeaver
 
 ---
-## 🚀 Deployment Instructions
+## Deployment Instructions
 
-This project uses **Docker Compose** to run the entire application — including the Flask backend and PostgreSQL database — in isolated containers. No manual setup of Python, PostgreSQL, or dependencies is required.
+This project uses **Docker Compose** to run the entire application. No manual setup of Python, PostgreSQL, or dependencies is required.
 
-### ✅ Prerequisites
+### Prerequisites
 
 Before starting, make sure you have the following installed:
 
-- [Docker](https://www.docker.com/get-started)
-- [Docker Compose](https://docs.docker.com/compose/install/)
-
+- [Docker Desktop](https://www.docker.com/products/docker-desktop)
+- [Windows Subsystem for Linux (WSL)](https://learn.microsoft.com/en-us/windows/wsl/install) if you are using Windows
+- [Visual Studio Code](https://code.visualstudio.com/) with the following extensions:
+  - Python
+  - Docker
+- [Git](https://git-scm.com/) (for cloning the repository)
+  
 ---
 
-### 🛠️ Environment Setup
+### Environment Setup
 
 1. **Clone the repository:**
    ```bash
@@ -68,19 +72,24 @@ Before starting, make sure you have the following installed:
    cp .env.example .env
    ```
 
-   Then open `.env` and fill in your values:
+   Then open `.env` and fill in your values with your original PASSWORDS:
    ```
    DB_NAME=guessme_db
-   DB_USER=your_postgres_username
-   DB_PASSWORD=your_postgres_password
+   DB_USER=postgres
+   DB_PASSWORD=your_postgres_password //change this
    DB_HOST=db
-   DB_PORT=5432
-   SECRET_KEY=your_flask_secret_key
+   DB_PORT=5432 //change this if you already have occupied port 5432 with another database
+   SECRET_KEY=your_flask_secret_key //change this
+   
+   POSTGRES_DB=guessme_db
+   POSTGRES_USER=postgres
+   POSTGRES_PASSWORD= your_postgres_password //change this
+   
    ```
 
 ---
 
-### ▶️ Running the Application
+### Running the Application
 
 To build and start the app with Docker Compose:
 
@@ -93,13 +102,13 @@ This command will:
 - Start the PostgreSQL database container
 - Build and start the Flask web app
 - Make the app accessible at:  
-  👉 [http://127.0.0.1:5000](http://127.0.0.1:5000)
+  [http://127.0.0.1:5000](http://127.0.0.1:5000)
 
 ---
 
-### 📦 (One-Time) Import Word Lists
+### (One-Time) Import Word Lists. If you won't import words you won't be able to play a Game
 
-If the word database is empty (e.g. on first setup), run this command to import valid and solution words:
+On first setup, run this command to import valid and solution words:
 
 ```bash
 docker-compose exec web python -m setup_scripts.import_words
@@ -109,72 +118,62 @@ This reads from `valid_words.py` and `solution_words.json` and populates the dat
 
 ---
 
-### 🛑 Stopping the App
+### Stopping the App
 
 To stop the app but keep data:
 ```bash
 docker-compose down
 ```
 
-To stop and **delete all data** (⚠️ includes users and word lists):
-```bash
-docker-compose down --volumes
-```
+## Environment Variables (from `.env`)
 
+### App-Level Variables (used by Flask)
 
-## How to Run the App (using Docker)
-
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/bannita/guessMe_project.git
-cd guessMe_project
-```
-
-### 2. Set up environment variables
-
-Copy the `.env.example` file:
-
-```bash
-cp .env.example .env
-```
-
-Then fill in the actual values (e.g. your database password).
-
-### 3. Run using Docker Compose
-
-```bash
-docker build -t guessme_app .
-docker run -p 5000:5000 --name guessme_container --env-file .env guessme_app
-```
-
-* The app will run at: `http://localhost:5000`
-* PostgreSQL will run in the background on port `5432`
+| Variable       | Description                                                 |
+|----------------|-------------------------------------------------------------|
+| `DB_NAME`      | PostgreSQL database name used by the app                    |
+| `DB_USER`      | PostgreSQL username                                         |
+| `DB_PASSWORD`  | PostgreSQL password                                         |
+| `DB_HOST`      | Database host                                               |
+| `DB_PORT`      | Database port                                               |
+| `SECRET_KEY`   | Flask secret key for signing sessions and cookies           |
 
 ---
 
-## Environment Variables (from `.env`)
+### Docker-Level Variables (used by the PostgreSQL container)
 
-| Variable      | Description                                          |
-| ------------- | ---------------------------------------------------- |
-| `DB_NAME`     | PostgreSQL database name                             |
-| `DB_USER`     | PostgreSQL username                                  |
-| `DB_PASSWORD` | PostgreSQL password                                  |
-| `DB_HOST`     | host.docker.internal                                 |
-| `DB_PORT`     | Usually `5432`                                       |
-| `SECRET_KEY`  | Flask secret key for sessions                        |
+| Variable            | Description                                             |
+|---------------------|---------------------------------------------------------|
+| `POSTGRES_DB`       | Initial database name created inside the container      |
+| `POSTGRES_USER`     | Default PostgreSQL user for the container               |
+| `POSTGRES_PASSWORD` | Password for `POSTGRES_USER`                            |
 
 ---
 
 ## How to Use/Test the App
 
-1. Go to `http://localhost:5000`
-2. Create an account or log in
+1. Go to `http://127.0.0.1:5000/`
+2. Create an account
 3. Start a game
 4. Enter 5-letter guesses (max 6 tries)
 5. Use hints if needed (each hint costs 1 life)
 6. View your stats and streaks after each game
 7. Visit your profile to update password or delete account
+
+  ---
+
+## Admin Panel Access
+
+To access the admin panel:
+
+* Use the email `anibidzinashvili98@gmail.com` when logging in 
+* Once logged in, an "Admin Panel" button will appear on your profile page
+
+Admin capabilities:
+
+* View and delete users
+* View, add, or delete words
+
 
 ---
 
@@ -190,35 +189,6 @@ docker run -p 5000:5000 --name guessme_container --env-file .env guessme_app
   - 1 life is lost per game.
   - 1 life is lost per hint used.
   - Lives reset at midnight.
-
-  ---
-
-## Admin Panel Access
-
-To access the admin panel:
-
-* Use the email `anibidzinashvili98@gmail.com` when logging in (password: guessme)
-* Once logged in, an "Admin Panel" button will appear on your profile page
-
-Admin capabilities:
-
-* View and delete users
-* View, add, or delete words
-
----
-
-## Resetting the Word List (optional)
-
-If you need to re-import solution or valid words:
-
-```bash
-python setup_scripts/import_words.py
-```
-
-This script uses SQLAlchemy and pulls from:
-
-* `setup_scripts/solution_words.json`
-* `setup_scripts/valid_words.py`
 
 ---
 
@@ -264,8 +234,8 @@ This script uses SQLAlchemy and pulls from:
 
 ### Stats
 
-| Method | Route                   | Description                                      |
-|--------|-------------------------|--------------------------------------------------|
+| Method | Route                   | Description                                     |
+|--------|-------------------------|-------------------------------------------------|
 | GET    | `/api/stats/me`         | Get stats for current logged-in user            |
 | GET    | `/api/stats/<email>`    | Get stats for a specific user (by email)        |
 
@@ -347,8 +317,7 @@ static/
 
 ## Thank You
 
-This app was built with care as a final project for CS250 and was inspired by Wordle and other guessing games.  
+This app was built as a final project for CS250 and was inspired by Wordle and other guessing games.  
 I hope you enjoy exploring it! 
-
 
 ---
