@@ -10,9 +10,6 @@ from flask_cors import CORS
 #creates flask app and allow static files to be served directly from the root URL
 app = Flask(__name__, static_url_path="")
 
-app.config['SESSION_COOKIE_SAMESITE'] = "Lax"
-app.config['SESSION_COOKIE_SECURE'] = False
-app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.secret_key = os.getenv("SECRET_KEY", "fallbacksecretkey")
 
 #attaches API routes from routes.py to the main app
