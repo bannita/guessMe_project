@@ -41,4 +41,8 @@ USER appuser
 
 
 ENV FLASK_APP=backend.app
-CMD ["flask", "run", "--host=0.0.0.0", "--port=5000"]
+#CMD ["flask", "run", "--host=0.0.0.0", "--port=5000"]
+
+CMD ["gunicorn", "-w", "3", "-k", "gthread", "-b", "0.0.0.0:5000", "backend.app:app"]
+
+
